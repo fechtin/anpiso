@@ -57,7 +57,9 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
     setGtKeyDraft(translateKeyService.getKey());
     setNamesDraft((userSettings.customNames || []).join('\n'));
     setNamesSaved(false);
-  }, [isOpen, initialTab, userSettings.customNames]);
+    // Chỉ seed lại khi MỞ dialog. KHÔNG phụ thuộc customNames: chính thao tác Save
+    // đổi customNames → nếu để trong deps, effect chạy lại và reset "Đã lưu" tức thì.
+  }, [isOpen, initialTab]);
 
   // Poll error version to re-render when keys fail at runtime
   const [, setErrorTick] = useState(0);
@@ -228,9 +230,13 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
             <div className="flex justify-end mt-3">
               <button
                 onClick={saveNames}
-                className="px-6 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-xs font-bold transition-colors"
+                className={`px-6 py-2.5 text-white rounded-xl text-xs font-bold transition-colors ${
+                  namesSaved ? 'bg-emerald-500' : 'bg-violet-500 hover:bg-violet-600'
+                }`}
               >
-                {namesSaved ? t.customNamesSaved : t.saveKeys}
+                {namesSaved
+                  ? <><i className="fas fa-check mr-1.5"></i>{t.customNamesSaved}</>
+                  : t.saveKeys}
               </button>
             </div>
           </section>
