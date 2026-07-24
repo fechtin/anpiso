@@ -1,0 +1,7 @@
+{
+  "name": "Anpiso",
+  "description": "An AI-powered meeting recorder and minutes generator supporting English, Korean, and Vietnamese.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

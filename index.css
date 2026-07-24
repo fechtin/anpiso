@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+    /* Ngăn chặn pull-to-refresh trên mobile */
+    overscroll-behavior-y: contain;
+}
+
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.recording-pulse {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Tối ưu cho tai thỏ/safe area trên iPhone */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.animate-blink { animation: blink 0.8s infinite; }
+/* Thumb sáng cho các khung cuộn trên nền trắng (panel tối tự override trong LiveTranscript) */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+/* Ẩn scrollbar nhưng vẫn cuộn được — dùng cho container cấp trang */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Hiệu ứng "thở" chậm cho halo quanh nút record + waveform gợn êm */
+@keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.07); opacity: 0.75; }
+}
+.animate-breathe { animation: breathe 3.2s ease-in-out infinite; }
+.animate-breathe-delayed { animation: breathe 3.2s ease-in-out 1.6s infinite; }
+@keyframes eq-soft {
+    0%, 100% { transform: scaleY(0.55); }
+    50% { transform: scaleY(1); }
+}
+.eq-soft { animation: eq-soft 1.8s ease-in-out infinite; transform-origin: center; }
+/* Wordmark "Anpiso": gradient blue→indigo trôi nhẹ */
+@keyframes brand-shimmer {
+    to { background-position: -200% center; }
+}
+.brand-shimmer {
+    background-size: 200% auto;
+    animation: brand-shimmer 6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .animate-breathe, .animate-breathe-delayed, .eq-soft, .brand-shimmer { animation: none; }
+}
+
+/* Landing "sổ tay thư ký": typography editorial + bút dạ quang */
+.landing-body { font-family: 'Be Vietnam Pro', 'Inter', ui-sans-serif, sans-serif; }
+.font-display { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
+.font-hand { font-family: 'Patrick Hand', 'Comic Sans MS', cursive; }
+.hl-marker {
+    background: linear-gradient(104deg, transparent 0.5%, #fde68a 3.5%, #fcd34d 50%, #fde68a 96%, transparent 98.5%);
+    padding: 0.05em 0.18em;
+    margin: 0 -0.05em;
+    border-radius: 0.25em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}

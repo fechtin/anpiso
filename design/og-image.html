@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700&family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden; position: relative;
+    background: #FBFAF8;
+    font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+    color: #1D1A17;
+  }
+  .wrap { position: relative; height: 100%; padding: 58px 72px; display: flex; flex-direction: column; }
+
+  /* Logo row */
+  .logo-row { display: flex; align-items: center; gap: 16px; }
+  .logo { width: 66px; height: 66px; border-radius: 17px; border: 1px solid #E8E4DC; box-shadow: 0 6px 16px rgba(29,26,23,0.08); }
+  .brand { font-family: 'Fraunces', Georgia, serif; font-size: 36px; font-weight: 800; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 15px; color: #78716c; font-weight: 500; margin-top: 2px; }
+
+  /* Headline */
+  .headline {
+    margin-top: 48px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 66px; font-weight: 800; letter-spacing: -1px; line-height: 1.22;
+    max-width: 760px;
+  }
+  .hl {
+    background: linear-gradient(104deg, transparent 0.5%, #fde68a 3.5%, #fcd34d 50%, #fde68a 96%, transparent 98.5%);
+    padding: 0.02em 0.18em; margin: 0 -0.05em; border-radius: 0.25em;
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  }
+
+  /* Bullets */
+  .bullets { display: flex; gap: 30px; margin-top: 44px; }
+  .bullet { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; color: #44403c; }
+  .bullet .tick { color: #4f46e5; font-weight: 700; }
+
+  /* Footer */
+  .footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; }
+  .domain { font-size: 22px; font-weight: 700; color: #4f46e5; letter-spacing: 0.2px; display: flex; align-items: center; gap: 11px; }
+  .domain .dot { width: 9px; height: 9px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,0.8); }
+  .free { font-size: 16px; color: #a8a29e; font-weight: 500; }
+
+  /* Right visual: minutes card + sticky note + hand arrow */
+  .visual { position: absolute; right: 66px; top: 168px; width: 330px; }
+  .card {
+    background: #ffffff; border: 1px solid #E8E4DC; border-radius: 18px;
+    box-shadow: 0 22px 44px rgba(29,26,23,0.10); padding: 22px; position: relative;
+  }
+  .card-title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; color: #1D1A17; }
+  .card-title .check { margin-left: auto; width: 24px; height: 24px; border-radius: 50%; background: #10b981; color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .lines { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .line { display: flex; align-items: center; gap: 10px; }
+  .line .box { width: 15px; height: 15px; border: 2px solid #c7c2b9; border-radius: 4px; }
+  .line .box.done { background: #4f46e5; border-color: #4f46e5; position: relative; }
+  .line .box.done::after { content: '✓'; color: #fff; font-size: 10px; position: absolute; left: 2px; top: -1px; }
+  .line .bar { height: 10px; border-radius: 6px; background: #EDEAE3; }
+  .sticky {
+    position: absolute; top: -34px; right: -14px; transform: rotate(4deg);
+    background: #fef3c7; border: 1px solid rgba(217,119,6,0.2); border-radius: 3px;
+    padding: 10px 16px; box-shadow: 0 8px 18px rgba(29,26,23,0.12);
+    font-family: 'Patrick Hand', cursive; font-size: 21px; color: #92600a;
+  }
+  .caption { position: absolute; left: -46px; bottom: -56px; display: flex; align-items: flex-end; gap: 8px; }
+  .caption p { font-family: 'Patrick Hand', cursive; font-size: 23px; color: #57534e; transform: rotate(-3deg); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-row">
+      <img class="logo" src="../public/icon-light.png" alt="">
+      <div>
+        <div class="brand">Anpiso</div>
+        <div class="brand-sub">AI Meeting Assistant</div>
+      </div>
+    </div>
+
+    <div class="headline">
+      <span id="h1"></span><br>
+      <span class="hl" id="h2"></span>
+    </div>
+
+    <div class="bullets" id="bullets"></div>
+
+    <div class="footer">
+      <div class="domain"><span class="dot"></span>anpiso.fechtin.com</div>
+      <div class="free" id="free"></div>
+    </div>
+  </div>
+
+  <div class="visual">
+    <div class="card">
+      <div class="card-title"><span id="minutes"></span><span class="check">✓</span></div>
+      <div class="lines">
+        <div class="line"><span class="box done"></span><span class="bar" style="width:78%"></span></div>
+        <div class="line"><span class="box done"></span><span class="bar" style="width:62%"></span></div>
+        <div class="line"><span class="box done"></span><span class="bar" style="width:70%"></span></div>
+        <div class="line"><span class="box"></span><span class="bar" style="width:52%"></span></div>
+        <div class="line"><span class="box"></span><span class="bar" style="width:66%"></span></div>
+      </div>
+      <div class="sticky" id="note"></div>
+      <div class="caption">
+        <p id="arrow-text"></p>
+        <svg viewBox="0 0 90 60" width="66" height="44" fill="none">
+          <path d="M6 12 C 30 8, 60 18, 80 46" stroke="#1D1A17" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M68 42 L 81 48 L 70 54" stroke="#1D1A17" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TEXTS = {
+      vi: {
+        h1: 'Bạn cứ họp.',
+        h2: 'Ghi chép để Anpiso lo.',
+        bullets: ['Transcript trực tiếp', 'Biên bản & việc cần làm', 'Dịch song ngữ'],
+        free: 'Miễn phí với Gemini API key của bạn',
+        minutes: 'Biên bản đã sẵn sàng',
+        note: '5 việc cần làm ✓',
+        arrow: 'Anpiso viết biên bản!',
+      },
+      en: {
+        h1: 'You run the meeting.',
+        h2: 'The notes run themselves.',
+        bullets: ['Live transcript', 'Minutes & action items', 'Bilingual translation'],
+        free: 'Free — bring your own Gemini API key',
+        minutes: 'Minutes ready',
+        note: '5 to-dos ✓',
+        arrow: 'minutes write themselves!',
+      },
+      ko: {
+        h1: '회의는 당신이,',
+        h2: '기록은 Anpiso가 합니다.',
+        bullets: ['실시간 자막', '회의록 & 액션 아이템', '이중 언어 번역'],
+        free: '무료 — 본인의 Gemini API 키 사용',
+        minutes: '회의록 완성',
+        note: '할 일 5개 ✓',
+        arrow: '회의록이 저절로!',
+      },
+    };
+    const lang = new URLSearchParams(location.search).get('lang') || 'vi';
+    const T = TEXTS[lang] || TEXTS.vi;
+    document.getElementById('h1').textContent = T.h1;
+    document.getElementById('h2').textContent = T.h2;
+    document.getElementById('free').textContent = T.free;
+    document.getElementById('minutes').textContent = T.minutes;
+    document.getElementById('note').textContent = T.note;
+    document.getElementById('arrow-text').textContent = T.arrow;
+    document.getElementById('bullets').innerHTML = T.bullets
+      .map(b => '<div class="bullet"><span class="tick">✓</span>' + b + '</div>').join('');
+  </script>
+</body>
+</html>
