@@ -30,7 +30,8 @@ export const useMeetingRecorder = (
   targetLang: TargetLanguage = 'vi',
   translationEnabled: boolean = true,
   getLiveTranscriptText?: () => string,
-  onAudioReady?: (blob: Blob) => void
+  onAudioReady?: (blob: Blob) => void,
+  customNames: string[] = []
 ) => {
   // Live transcript làm nguồn dự phòng khi gỡ băng HQ thất bại toàn bộ
   const getLiveTextRef = useRef(getLiveTranscriptText);
@@ -44,6 +45,9 @@ export const useMeetingRecorder = (
 
   const translationEnabledRef = useRef(translationEnabled);
   useEffect(() => { translationEnabledRef.current = translationEnabled; }, [translationEnabled]);
+
+  const customNamesRef = useRef(customNames);
+  useEffect(() => { customNamesRef.current = customNames; }, [customNames]);
 
   const [status, setStatus] = useState<RecordingStatus>(RecordingStatus.IDLE);
   const [minutes, setMinutes] = useState<MeetingMinutes | null>(null);
@@ -98,7 +102,7 @@ export const useMeetingRecorder = (
   const processSegment = async (blob: Blob, index: number, mimeType: string) => {
     setIsProcessingSegment(true);
     try {
-      const text = await aiService.transcribeSegment(blob, index, mimeType);
+      const text = await aiService.transcribeSegment(blob, index, mimeType, customNamesRef.current);
       if (text && text.trim()) {
         const shifted = shiftTranscriptTimestamps(text, index * 10);
         hqSegmentsRef.current[index] = shifted;

@@ -17,6 +17,13 @@ const LANG_NAMES: Record<TargetLanguage, string> = {
 
 const langName = (lang: TargetLanguage): string => LANG_NAMES[lang] || 'Vietnamese';
 
+/** Chỉ thị chèn vào prompt để AI viết đúng chính tả danh từ riêng người dùng cung cấp. */
+const namesHint = (names?: string[]): string => {
+  const list = (names || []).map(n => n.trim()).filter(Boolean);
+  if (list.length === 0) return '';
+  return `\n            KNOWN PROPER NOUNS (people, products, companies) — use these EXACT spellings whenever they appear: ${list.join(', ')}.`;
+};
+
 /** Create a GoogleGenAI client with the current active key */
 function createClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey: apiKeyService.getGeminiApiKey() });
@@ -241,7 +248,7 @@ export const aiService = {
   /**
    * High-quality transcription for a specific audio segment
    */
-  async transcribeSegment(blob: Blob, segmentIndex: number, mimeType: string = 'audio/webm'): Promise<string> {
+  async transcribeSegment(blob: Blob, segmentIndex: number, mimeType: string = 'audio/webm', customNames?: string[]): Promise<string> {
     logService.add('text', 'req', 'transcribeSegment', `Segment: ${segmentIndex}, Size: ${blob.size} bytes, Type: ${mimeType}`);
     const base64Audio = await blobToBase64(blob);
 
@@ -253,7 +260,7 @@ export const aiService = {
           contents: [{ parts: [
             { inlineData: { mimeType, data: base64Audio } },
             { text: `You are a professional transcriptionist specializing in corporate meetings.
-            Task: Accurately transcribe the provided audio segment.
+            Task: Accurately transcribe the provided audio segment.${namesHint(customNames)}
 
             STRICT RULES:
             1. FORMATTING: Use [MM:SS] at the beginning of every new speaker turn. Timestamps MUST be RELATIVE to the start of THIS audio segment (the first speaker turn starts at or near [00:00]). Do NOT guess or invent absolute meeting time — the caller adds the offset afterwards.
@@ -279,7 +286,7 @@ export const aiService = {
    * Gỡ băng lại TOÀN BỘ file audio (tải từ Drive về) qua Gemini Files API —
    * không giới hạn inline base64, một request cho cả cuộc họp, timestamps tuyệt đối.
    */
-  async transcribeFullAudio(blob: Blob, mimeType: string = 'audio/webm'): Promise<string> {
+  async transcribeFullAudio(blob: Blob, mimeType: string = 'audio/webm', customNames?: string[]): Promise<string> {
     logService.add('text', 'req', 'transcribeFullAudio', `Size: ${blob.size} bytes, Type: ${mimeType}`);
     const ai = createClient();
 
@@ -301,7 +308,7 @@ export const aiService = {
           contents: [{ parts: [
             { fileData: { fileUri: file.uri!, mimeType: file.mimeType || mimeType } },
             { text: `You are a professional transcriptionist specializing in corporate meetings.
-            Task: Accurately transcribe the ENTIRE provided meeting audio from start to finish.
+            Task: Accurately transcribe the ENTIRE provided meeting audio from start to finish.${namesHint(customNames)}
 
             STRICT RULES:
             1. FORMATTING: Use [MM:SS] at the beginning of every new speaker turn, measured from the start of the audio. Cover the whole recording — do not stop early or skip sections.
@@ -324,7 +331,7 @@ export const aiService = {
   /**
    * Generate structured meeting minutes from the full transcript
    */
-  async generateMinutes(fullTranscript: string, timeRange: string, targetLang: TargetLanguage = 'vi', translate: boolean = true): Promise<MeetingMinutes> {
+  async generateMinutes(fullTranscript: string, timeRange: string, targetLang: TargetLanguage = 'vi', translate: boolean = true, customNames?: string[]): Promise<MeetingMinutes> {
     logService.add('text', 'req', 'generateMinutes', `Transcript length: ${fullTranscript.length}, target: ${translate ? targetLang : 'none (notes mode)'}`);
     const targetName = langName(targetLang);
     const targetUpper = targetName.toUpperCase();
@@ -347,7 +354,7 @@ export const aiService = {
             - "discussion": one array item per distinct topic, in the order discussed, covering EVERY topic — never merge or omit topics. Each item: "topic" = short label (3-8 words); "content" = 2-5 sentences with context, the main points raised (attribute to speakers when identifiable) and how the topic concluded. Guideline: at least one item per 5-7 minutes of meeting time.
             - "decisions": every decision that was agreed, one string per decision. Empty array if none.
             - "openIssues": points raised but left unresolved or needing follow-up. Empty array if none.
-            Preserve every number, date, amount, deadline and proper name mentioned. Do not put headings or bullet characters inside the texts — the app renders structure itself.
+            Preserve every number, date, amount, deadline and proper name mentioned. Do not put headings or bullet characters inside the texts — the app renders structure itself.${namesHint(customNames)}
             - For "translatedTranscript": keep all [MM:SS] timestamps exactly as they are. Each timestamp segment MUST start on a new line (use \\n before each [MM:SS] timestamp). If a sentence is already in ${targetName}, keep it unchanged. Translate other languages to natural, professional corporate ${targetName}. Output ONLY the translated text.
 
             TIME RANGE: ${timeRange}
@@ -366,7 +373,7 @@ export const aiService = {
             - "discussion": one array item per distinct topic, in the order discussed, covering EVERY topic — never merge or omit topics. Each item: "topic" = short label (3-8 words); "content" = 2-5 sentences with context, the main points raised (attribute to speakers when identifiable) and how the topic concluded. Guideline: at least one item per 5-7 minutes of meeting time.
             - "decisions": every decision that was agreed, one string per decision. Empty array if none.
             - "openIssues": points raised but left unresolved or needing follow-up. Empty array if none.
-            Preserve every number, date, amount, deadline and proper name mentioned. Do not put headings or bullet characters inside the texts — the app renders structure itself.
+            Preserve every number, date, amount, deadline and proper name mentioned. Do not put headings or bullet characters inside the texts — the app renders structure itself.${namesHint(customNames)}
 
             TIME RANGE: ${timeRange}
             TRANSCRIPT:

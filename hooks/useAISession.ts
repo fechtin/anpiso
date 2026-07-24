@@ -13,7 +13,7 @@ import { apiKeyService } from '../services/apiKeyService';
 import { useTranslationQueue } from './useTranslationQueue';
 import { TargetLanguage } from '../types';
 
-export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 'vi', translationEnabled: boolean = true) => {
+export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 'vi', translationEnabled: boolean = true, customNames: string[] = []) => {
   const {
     liveTranscript, setLiveTranscript,
     inputDraft, setInputDraft, outputDraft,
@@ -36,6 +36,10 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
   const consecutiveSendFailuresRef = useRef<number>(0);
 
   const triggerReconnectRef = useRef<() => void>(() => {});
+
+  // Ref để reconnect luôn dùng danh sách tên mới nhất mà không phải tạo lại connect()
+  const customNamesRef = useRef(customNames);
+  customNamesRef.current = customNames;
 
   const internalCleanup = useCallback(() => {
     if (reconnectTimeoutRef.current) window.clearTimeout(reconnectTimeoutRef.current);
@@ -108,6 +112,12 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
         workletNode.connect(inputCtxRef.current.destination);
       }
 
+      const baseSystemInstruction = "SYSTEM: SILENT TRANSCRIPTIONIST. DO NOT SPEAK. TRANSCRIPTION ONLY. SUPPORT KO, EN, VI.";
+      const names = customNamesRef.current;
+      const systemInstruction = names && names.length > 0
+        ? `${baseSystemInstruction} KNOWN PROPER NOUNS (people/products/companies) — when you hear them, transcribe with this EXACT spelling: ${names.join(', ')}.`
+        : baseSystemInstruction;
+
       const ai = new GoogleGenAI({ apiKey: apiKeyService.getGeminiApiKey() });
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -179,7 +189,7 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
         },
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: "SYSTEM: SILENT TRANSCRIPTIONIST. DO NOT SPEAK. TRANSCRIPTION ONLY. SUPPORT KO, EN, VI.",
+          systemInstruction,
           inputAudioTranscription: {},
         }
       });

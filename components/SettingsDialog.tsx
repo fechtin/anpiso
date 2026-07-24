@@ -12,12 +12,30 @@ interface Props {
   userSettings: UserSettings;
   isDriveAuthorizing: boolean;
   onToggleDrive: () => void;
+  /** Lưu danh sách tên riêng (đồng bộ Firestore). */
+  onSaveCustomNames: (names: string[]) => void;
   /** Tab mở sẵn khi bật dialog (vd banner "thiếu key" mở thẳng tab API Keys). */
   initialTab?: 'general' | 'keys';
 }
 
+/** Tách textarea (mỗi dòng / dấu phẩy) thành mảng tên: trim, bỏ rỗng, khử trùng lặp, giới hạn 50. */
+const parseNames = (raw: string): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[\n,]/)) {
+    const name = part.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= 50) break;
+  }
+  return out;
+};
+
 /** Trung tâm cài đặt: modal giữa màn hình trên desktop, full-screen sheet trên mobile. */
-const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onToggleDrive, initialTab = 'general' }: Props) => {
+const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onToggleDrive, onSaveCustomNames, initialTab = 'general' }: Props) => {
   const { t } = useLocale();
   const [geminiKeys, setGeminiKeys] = useState<string[]>([]);
   const [showKeys, setShowKeys] = useState(false);
@@ -28,6 +46,8 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
   const [showGtSetup, setShowGtSetup] = useState(false);
   const [showGeminiSetup, setShowGeminiSetup] = useState(false);
   const [tab, setTab] = useState<'general' | 'keys'>(initialTab);
+  const [namesDraft, setNamesDraft] = useState('');
+  const [namesSaved, setNamesSaved] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,7 +55,9 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
     const saved = apiKeyService.getKeys();
     setGeminiKeys(saved.length > 0 ? saved : ['']);
     setGtKeyDraft(translateKeyService.getKey());
-  }, [isOpen, initialTab]);
+    setNamesDraft((userSettings.customNames || []).join('\n'));
+    setNamesSaved(false);
+  }, [isOpen, initialTab, userSettings.customNames]);
 
   // Poll error version to re-render when keys fail at runtime
   const [, setErrorTick] = useState(0);
@@ -97,6 +119,14 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
     translateKeyService.clearKey();
     setGtKeyDraft('');
     setGtKeySaved(false);
+  };
+
+  const saveNames = () => {
+    const names = parseNames(namesDraft);
+    onSaveCustomNames(names);
+    setNamesDraft(names.join('\n')); // chuẩn hoá lại textarea theo danh sách đã lưu
+    setNamesSaved(true);
+    setTimeout(() => setNamesSaved(false), 2000);
   };
 
   const SectionHead = ({ icon, iconBg, iconColor, title, subtitle, right }: {
@@ -178,6 +208,31 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
           {/* Mã hoá đầu-cuối (component sẵn có) */}
           <section className="bg-slate-50/60 border border-slate-100 rounded-2xl p-5">
             <EncryptionSettings userSettings={userSettings} />
+          </section>
+
+          {/* Tên riêng thường dùng — bias nhận dạng giọng nói & chính tả */}
+          <section className="bg-slate-50/60 border border-slate-100 rounded-2xl p-5">
+            <SectionHead
+              icon="fas fa-address-book" iconBg="bg-violet-50" iconColor="text-violet-500"
+              title={t.customNamesTitle}
+              subtitle={t.customNamesSubtitle}
+            />
+            <textarea
+              value={namesDraft}
+              onChange={(e) => { setNamesDraft(e.target.value); setNamesSaved(false); }}
+              placeholder={t.customNamesPlaceholder}
+              rows={4}
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-100 resize-y leading-relaxed"
+            />
+            <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">{t.customNamesNote}</p>
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={saveNames}
+                className="px-6 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-xs font-bold transition-colors"
+              >
+                {namesSaved ? t.customNamesSaved : t.saveKeys}
+              </button>
+            </div>
           </section>
           </>)}
 

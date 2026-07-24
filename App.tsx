@@ -148,7 +148,7 @@ const App: React.FC = () => {
   const setTargetLang = (v: TargetLanguage) => { _setTargetLang(v); localStorage.setItem('pref_targetLang', v); };
 
   // Custom Hooks quản lý Live Interpretation Session (cả 2 luôn được khởi tạo, chỉ active hook được connect)
-  const geminiSession = useAISession(rpmLimit, targetLang, translationEnabled);
+  const geminiSession = useAISession(rpmLimit, targetLang, translationEnabled, userSettings.customNames);
   const webSpeechSession = useWebSpeechSession(rpmLimit, webSpeechLang, targetLang, translationEnabled);
   const activeSession = sttEngine === SttEngine.GEMINI ? geminiSession : webSpeechSession;
   const {
@@ -189,7 +189,8 @@ const App: React.FC = () => {
       .filter(l => l.type === 'input')
       .map(l => `[${formatTime(l.timestamp)}] ${l.text}`)
       .join('\n'),
-    (blob: Blob) => uploadAudioAtStop(blob)
+    (blob: Blob) => uploadAudioAtStop(blob),
+    userSettings.customNames
   );
 
   // WebRTC sharing
@@ -340,7 +341,7 @@ const App: React.FC = () => {
     try {
       const created = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
       const timeRange = formatDateTimeRange(created, created);
-      const result = await aiService.generateMinutes(m.transcriptText || '', timeRange, targetLang, translationEnabled);
+      const result = await aiService.generateMinutes(m.transcriptText || '', timeRange, targetLang, translationEnabled, userSettings.customNames);
       await meetingService.finalizeDraft(m.id, result, result.translatedTranscript || '', m.encrypted === true);
       const updated = { ...m, draft: false, minutes: result, translatedTranscript: result.translatedTranscript || '' };
       setSelectedMeeting(updated);
@@ -361,13 +362,13 @@ const App: React.FC = () => {
     try {
       const token = await getDriveToken();
       const audioBlob = await driveService.downloadFile(token, m.driveLinks.audioFileId);
-      const transcript = await aiService.transcribeFullAudio(audioBlob, audioBlob.type || 'audio/webm');
+      const transcript = await aiService.transcribeFullAudio(audioBlob, audioBlob.type || 'audio/webm', userSettings.customNames);
       if (!transcript.trim()) throw new Error('Empty transcript from audio');
       await meetingService.updateTranscript(m.id, transcript, m.encrypted === true);
 
       const created = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
       const timeRange = formatDateTimeRange(created, created);
-      const result = await aiService.generateMinutes(transcript, timeRange, targetLang, translationEnabled);
+      const result = await aiService.generateMinutes(transcript, timeRange, targetLang, translationEnabled, userSettings.customNames);
       await meetingService.finalizeDraft(m.id, result, result.translatedTranscript || '', m.encrypted === true);
 
       const updated = {
@@ -618,6 +619,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSaveCustomNames = async (names: string[]) => {
+    setUserSettings(prev => ({ ...prev, customNames: names }));
+    if (user) await userSettingsService.updateSettings(user.uid, { customNames: names });
+  };
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -648,6 +654,7 @@ const App: React.FC = () => {
           userSettings={userSettings}
           isDriveAuthorizing={isDriveAuthorizing}
           onToggleDrive={handleToggleDrive}
+          onSaveCustomNames={handleSaveCustomNames}
           initialTab={settingsTab}
         />
 

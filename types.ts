@@ -17,6 +17,8 @@ export interface User {
 export interface UserSettings {
   driveEnabled: boolean;
   driveFolderId?: string;
+  /** Danh từ riêng thường dùng (tên người/sản phẩm/công ty) — cấp cho AI để nhận dạng & viết đúng chính tả. */
+  customNames?: string[];
   updatedAt?: any;
 }
 
