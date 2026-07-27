@@ -488,54 +488,68 @@ const App: React.FC = () => {
       </table>
     `;
 
-    return `
+    // Responsive email: layout hai cột dùng inline-block "fluid-hybrid" (tự xuống
+    // hàng trên mobile chỉ bằng inline style — sống sót cả khi paste vào Gmail
+    // compose, nơi <style>/media query bị lược bỏ). Thêm <head> + @media để tinh
+    // chỉnh padding/cỡ chữ trên điện thoại ở chế độ xem email nhận được.
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @media only screen and (max-width:600px) {
+    .anpiso-card { padding:24px 18px !important; border-radius:24px !important; }
+    .anpiso-title { font-size:22px !important; }
+    .anpiso-meta { max-width:100% !important; padding-right:0 !important; margin-bottom:16px !important; }
+    .anpiso-col-a { max-width:100% !important; padding-right:0 !important; margin-bottom:36px !important; }
+    .anpiso-col-b { max-width:100% !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0;">
       <div style="font-family:'Inter', Arial, sans-serif; background-color:#f8fafc; padding:40px 10px; color:#334155;">
-        <div style="max-width:850px; margin:0 auto; background-color:#ffffff; border-radius:40px; padding:45px; border:1px solid #f1f5f9; box-shadow:0 25px 50px -12px rgba(0,0,0,0.08);">
+        <div class="anpiso-card" style="max-width:850px; margin:0 auto; background-color:#ffffff; border-radius:40px; padding:45px; border:1px solid #f1f5f9; box-shadow:0 25px 50px -12px rgba(0,0,0,0.08);">
           <div style="margin-bottom:45px;">
-            <h2 style="font-size:28px; font-weight:900; color:#1e293b; margin:0 0 20px 0; letter-spacing:-0.03em; line-height:1.2;">${titleText}</h2>
-            <table width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td width="50%" style="padding-right:20px;">
-                  <div style="display:inline-block; vertical-align:middle; width:32px; height:32px; background-color:#f0f4ff; border-radius:100%; text-align:center; line-height:32px; margin-right:12px;">📅</div>
-                  <div style="display:inline-block; vertical-align:middle;">
-                    <p style="text-transform:uppercase; font-size:9px; font-weight:900; color:#94a3b8; letter-spacing:0.15em; margin:0 0 2px 0;">${t.timeLabel}</p>
-                    <p style="font-size:14px; font-weight:700; color:#475569; margin:0;">${m.time}</p>
-                  </div>
-                </td>
-                <td width="50%">
-                  <div style="display:inline-block; vertical-align:middle; width:32px; height:32px; background-color:#f0f4ff; border-radius:100%; text-align:center; line-height:32px; margin-right:12px;">📍</div>
-                  <div style="display:inline-block; vertical-align:middle;">
-                    <p style="text-transform:uppercase; font-size:9px; font-weight:900; color:#94a3b8; letter-spacing:0.15em; margin:0 0 2px 0;">${t.locationLabel}</p>
-                    <p style="font-size:14px; font-weight:700; color:#475569; margin:0;">${m.location}</p>
-                  </div>
-                </td>
-              </tr>
-            </table>
+            <h2 class="anpiso-title" style="font-size:28px; font-weight:900; color:#1e293b; margin:0 0 20px 0; letter-spacing:-0.03em; line-height:1.2;">${titleText}</h2>
+            <div style="font-size:0;">
+              <div class="anpiso-meta" style="display:inline-block; vertical-align:top; width:100%; max-width:340px; box-sizing:border-box; padding-right:20px; font-size:14px;">
+                <div style="display:inline-block; vertical-align:middle; width:32px; height:32px; background-color:#f0f4ff; border-radius:100%; text-align:center; line-height:32px; margin-right:12px;">📅</div>
+                <div style="display:inline-block; vertical-align:middle;">
+                  <p style="text-transform:uppercase; font-size:9px; font-weight:900; color:#94a3b8; letter-spacing:0.15em; margin:0 0 2px 0;">${t.timeLabel}</p>
+                  <p style="font-size:14px; font-weight:700; color:#475569; margin:0;">${m.time}</p>
+                </div>
+              </div><div class="anpiso-meta" style="display:inline-block; vertical-align:top; width:100%; max-width:340px; box-sizing:border-box; font-size:14px;">
+                <div style="display:inline-block; vertical-align:middle; width:32px; height:32px; background-color:#f0f4ff; border-radius:100%; text-align:center; line-height:32px; margin-right:12px;">📍</div>
+                <div style="display:inline-block; vertical-align:middle;">
+                  <p style="text-transform:uppercase; font-size:9px; font-weight:900; color:#94a3b8; letter-spacing:0.15em; margin:0 0 2px 0;">${t.locationLabel}</p>
+                  <p style="font-size:14px; font-weight:700; color:#475569; margin:0;">${m.location}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td width="64%" valign="top" style="padding-right:40px;">
-                <div style="margin-bottom:45px;">
-                  ${renderSectionHeader(t.participantsSection)}
-                  <div style="margin-top:15px;">${participantsHTML}</div>
-                </div>
-                <div>
-                  ${renderSectionHeader(t.summarySection)}
-                  ${minutesBodyHTML(m, t)}
-                </div>
-              </td>
-              <td width="36%" valign="top">
-                ${renderSectionHeader(t.actionItemsSection)}
-                <div style="margin-top:15px;">${actionItemsHTML}</div>
-              </td>
-            </tr>
-          </table>
+          <div style="font-size:0;">
+            <div class="anpiso-col-a" style="display:inline-block; vertical-align:top; width:100%; max-width:470px; box-sizing:border-box; padding-right:40px; font-size:14px;">
+              <div style="margin-bottom:45px;">
+                ${renderSectionHeader(t.participantsSection)}
+                <div style="margin-top:15px;">${participantsHTML}</div>
+              </div>
+              <div>
+                ${renderSectionHeader(t.summarySection)}
+                ${minutesBodyHTML(m, t)}
+              </div>
+            </div><div class="anpiso-col-b" style="display:inline-block; vertical-align:top; width:100%; max-width:280px; box-sizing:border-box; font-size:14px;">
+              ${renderSectionHeader(t.actionItemsSection)}
+              <div style="margin-top:15px;">${actionItemsHTML}</div>
+            </div>
+          </div>
           <div style="margin-top:50px; padding-top:25px; border-top:1px solid #f1f5f9; text-align:center;">
              <p style="font-size:11px; color:#cbd5e1; font-weight:800; letter-spacing:0.05em;">${t.emailFooter}</p>
           </div>
         </div>
       </div>
-    `;
+</body>
+</html>`;
   };
 
   // Bản plain-text của biên bản — dùng cho fallback mailto khi chưa bật gửi Gmail trực tiếp
