@@ -37,6 +37,7 @@ const SendEmailDialog: React.FC<Props> = ({
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [extraEmail, setExtraEmail] = useState('');
+  const [search, setSearch] = useState('');
   const [sendState, setSendState] = useState<SendState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const isAddingRef = useRef(false);
@@ -48,8 +49,8 @@ const SendEmailDialog: React.FC<Props> = ({
     contactService.getContacts(userUid)
       .then(data => {
         setContacts(data);
-        // Auto-select all contacts
-        setSelectedEmails(new Set(data.map(c => c.email)));
+        // Mặc định không chọn ai — user tự tick người muốn gửi
+        setSelectedEmails(new Set());
       })
       .catch(err => console.error('Failed to load contacts:', err))
       .finally(() => setIsLoadingContacts(false));
@@ -62,6 +63,35 @@ const SendEmailDialog: React.FC<Props> = ({
       const next = new Set(prev);
       if (next.has(email)) next.delete(email);
       else next.add(email);
+      return next;
+    });
+  };
+
+  const q = search.trim().toLowerCase();
+  const filteredContacts = q
+    ? contacts.filter(c =>
+        c.email.toLowerCase().includes(q) ||
+        (c.name && c.name.toLowerCase().includes(q))
+      )
+    : contacts;
+
+  // Select/Deselect áp dụng trên danh sách đang hiển thị (đã lọc)
+  const filteredEmails = filteredContacts.map(c => c.email);
+  const allFilteredSelected =
+    filteredEmails.length > 0 && filteredEmails.every(e => selectedEmails.has(e));
+
+  const selectAllFiltered = () => {
+    setSelectedEmails(prev => {
+      const next = new Set(prev);
+      filteredEmails.forEach(e => next.add(e));
+      return next;
+    });
+  };
+
+  const deselectAllFiltered = () => {
+    setSelectedEmails(prev => {
+      const next = new Set(prev);
+      filteredEmails.forEach(e => next.delete(e));
       return next;
     });
   };
@@ -163,6 +193,7 @@ const SendEmailDialog: React.FC<Props> = ({
   const handleClose = () => {
     setSendState('idle');
     setErrorMsg('');
+    setSearch('');
     onClose();
   };
 
@@ -196,6 +227,33 @@ const SendEmailDialog: React.FC<Props> = ({
               <p className="text-slate-400 text-sm font-medium mt-1">{t.selectRecipients}</p>
             </div>
 
+            {!isLoadingContacts && contacts.length > 0 && (
+              <>
+                <div className="relative mb-3">
+                  <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder={t.searchEmailPlaceholder}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                  />
+                </div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-[11px] font-bold text-slate-400">
+                    {selectedEmails.size}/{contacts.length}
+                  </span>
+                  <button
+                    onClick={allFilteredSelected ? deselectAllFiltered : selectAllFiltered}
+                    disabled={filteredContacts.length === 0}
+                    className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors disabled:opacity-40"
+                  >
+                    {allFilteredSelected ? t.deselectAll : t.selectAll}
+                  </button>
+                </div>
+              </>
+            )}
+
             <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
               {isLoadingContacts ? (
                 // Skeleton loading
@@ -211,8 +269,13 @@ const SendEmailDialog: React.FC<Props> = ({
                   <p className="text-xs font-bold">{t.noContacts}</p>
                   <p className="text-[10px] mt-1">{t.addEmailToContacts}</p>
                 </div>
+              ) : filteredContacts.length === 0 ? (
+                <div className="text-center py-6 text-slate-400">
+                  <i className="far fa-face-frown text-2xl mb-2 block"></i>
+                  <p className="text-xs font-bold">{t.noSearchMatch}</p>
+                </div>
               ) : (
-                contacts.map(contact => (
+                filteredContacts.map(contact => (
                   <div
                     key={contact.id}
                     className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
