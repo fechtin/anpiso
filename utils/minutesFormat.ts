@@ -34,7 +34,7 @@ const esc = (s: string) =>
 /** Bản HTML inline-style — dùng cho email (Gmail không nhận class). */
 export function minutesBodyHTML(m: MeetingMinutes, t: TranslationKeys): string {
   const box = (inner: string) =>
-    `<div style="background-color:#f8fafc; padding:28px 32px; border-radius:24px; border:1px solid #f1f5f9; color:#475569; font-size:14px; line-height:1.7; font-weight:500;">${inner}</div>`;
+    `<div style="background-color:#f8fafc; padding:22px 24px; border-radius:24px; border:1px solid #f1f5f9; color:#475569; font-size:14px; line-height:1.7; font-weight:500;">${inner}</div>`;
 
   if (!hasStructuredMinutes(m)) {
     return box(`<div style="white-space:pre-wrap;">${esc(m.summary || '')}</div>`);
