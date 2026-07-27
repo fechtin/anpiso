@@ -488,13 +488,11 @@ const App: React.FC = () => {
       </table>
     `;
 
-    // Layout 1 cột full-width — robust cho MỌI mail client vì chỉ dựa vào inline
-    // style. App gửi qua đường paste vào Gmail compose (VITE_FEATURE_GMAIL_SEND
-    // =false), nơi <head>/<style>/media query/<meta viewport> bị lược bỏ; nên
-    // không thể vừa 2 cột desktop vừa full-width mobile bằng inline thuần. Chọn
-    // 1 cột: mobile được full-width dễ đọc, desktop vẫn gọn (card giới hạn bề
-    // rộng đọc). Time/Location dùng inline-block 2-up, tự xuống hàng khi hẹp.
-    // <head> + @media chỉ là lớp tinh chỉnh padding nếu client giữ được style.
+    // Responsive fluid-hybrid: 2 cột trên desktop, tự xuống 1 cột trên mobile —
+    // CHỈ bằng inline style, nên sống sót cả khi paste vào Gmail compose (nơi
+    // <head>/<style>/media query/<meta viewport> bị lược bỏ). Các padding để mức
+    // vừa phải để mobile không bị chừa lề quá nhiều (media query không chạy được
+    // trên đường paste). <head>+@media chỉ tinh chỉnh thêm nếu client giữ style.
     const metaBlock = (icon: string, label: string, value: string, gutter: boolean) => `
       <div class="anpiso-meta" style="display:inline-block; vertical-align:top; width:100%; max-width:260px; box-sizing:border-box; ${gutter ? 'padding-right:20px; ' : ''}margin-bottom:8px; font-size:14px;">
         <div style="display:inline-block; vertical-align:middle; width:32px; height:32px; background-color:#f0f4ff; border-radius:100%; text-align:center; line-height:32px; margin-right:12px;">${icon}</div>
@@ -511,33 +509,40 @@ const App: React.FC = () => {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   @media only screen and (max-width:600px) {
-    .anpiso-body { padding:24px 8px !important; }
-    .anpiso-card { padding:22px 18px !important; border-radius:24px !important; }
+    .anpiso-body { padding:20px 6px !important; }
+    .anpiso-card { padding:18px 14px !important; border-radius:24px !important; }
     .anpiso-title { font-size:22px !important; }
     .anpiso-meta { max-width:100% !important; padding-right:0 !important; }
+    .anpiso-col-a { max-width:100% !important; padding-right:0 !important; margin-bottom:32px !important; }
+    .anpiso-col-b { max-width:100% !important; }
   }
 </style>
 </head>
 <body style="margin:0; padding:0;">
-      <div class="anpiso-body" style="font-family:'Inter', Arial, sans-serif; background-color:#f8fafc; padding:40px 12px; color:#334155;">
-        <div class="anpiso-card" style="max-width:680px; margin:0 auto; background-color:#ffffff; border-radius:32px; padding:36px 32px; border:1px solid #f1f5f9; box-shadow:0 25px 50px -12px rgba(0,0,0,0.08);">
-          <h2 class="anpiso-title" style="font-size:28px; font-weight:900; color:#1e293b; margin:0 0 20px 0; letter-spacing:-0.03em; line-height:1.2;">${titleText}</h2>
-          <div style="font-size:0; margin-bottom:40px;">
-            ${metaBlock('📅', t.timeLabel, m.time, true)}${metaBlock('📍', t.locationLabel, m.location, false)}
+      <div class="anpiso-body" style="font-family:'Inter', Arial, sans-serif; background-color:#f8fafc; padding:36px 10px; color:#334155;">
+        <div class="anpiso-card" style="max-width:860px; margin:0 auto; background-color:#ffffff; border-radius:32px; padding:30px 26px; border:1px solid #f1f5f9; box-shadow:0 25px 50px -12px rgba(0,0,0,0.08);">
+          <div style="margin-bottom:34px;">
+            <h2 class="anpiso-title" style="font-size:28px; font-weight:900; color:#1e293b; margin:0 0 20px 0; letter-spacing:-0.03em; line-height:1.2;">${titleText}</h2>
+            <div style="font-size:0;">
+              ${metaBlock('📅', t.timeLabel, m.time, true)}${metaBlock('📍', t.locationLabel, m.location, false)}
+            </div>
           </div>
-          <div style="margin-bottom:40px;">
-            ${renderSectionHeader(t.participantsSection)}
-            <div style="margin-top:15px;">${participantsHTML}</div>
+          <div style="font-size:0;">
+            <div class="anpiso-col-a" style="display:inline-block; vertical-align:top; width:100%; max-width:490px; box-sizing:border-box; padding-right:28px; font-size:14px;">
+              <div style="margin-bottom:34px;">
+                ${renderSectionHeader(t.participantsSection)}
+                <div style="margin-top:15px;">${participantsHTML}</div>
+              </div>
+              <div>
+                ${renderSectionHeader(t.summarySection)}
+                ${minutesBodyHTML(m, t)}
+              </div>
+            </div><div class="anpiso-col-b" style="display:inline-block; vertical-align:top; width:100%; max-width:300px; box-sizing:border-box; font-size:14px;">
+              ${renderSectionHeader(t.actionItemsSection)}
+              <div style="margin-top:15px;">${actionItemsHTML}</div>
+            </div>
           </div>
-          <div style="margin-bottom:40px;">
-            ${renderSectionHeader(t.summarySection)}
-            ${minutesBodyHTML(m, t)}
-          </div>
-          <div>
-            ${renderSectionHeader(t.actionItemsSection)}
-            <div style="margin-top:15px;">${actionItemsHTML}</div>
-          </div>
-          <div style="margin-top:48px; padding-top:25px; border-top:1px solid #f1f5f9; text-align:center;">
+          <div style="margin-top:44px; padding-top:25px; border-top:1px solid #f1f5f9; text-align:center;">
              <p style="font-size:11px; color:#cbd5e1; font-weight:800; letter-spacing:0.05em;">${t.emailFooter}</p>
           </div>
         </div>
