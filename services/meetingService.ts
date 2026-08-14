@@ -1,6 +1,7 @@
 import {
   collection,
   addDoc,
+  getDoc,
   getDocs,
   deleteDoc,
   updateDoc,
@@ -164,6 +165,18 @@ export const meetingService = {
       lastDoc,
       hasMore,
     };
+  },
+
+  /**
+   * Lấy đúng 1 cuộc họp theo id — dùng cho link riêng /m/<id> khi doc đó chưa
+   * nằm trong trang lịch sử đã tải. Không phải của user → null (rules cũng chặn).
+   */
+  async getMeetingById(meetingId: string, userUid: string): Promise<any | null> {
+    const snapshot = await getDoc(doc(db, MEETINGS_COLLECTION, meetingId));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    if (data.ownerUid !== userUid) return null;
+    return decryptMeetingDoc(snapshot.id, data);
   },
 
   async deleteMeeting(meetingId: string): Promise<void> {

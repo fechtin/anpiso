@@ -13,6 +13,7 @@ import { RecordingStatus, AudioSource, MeetingMinutes, User, UserSettings, Drive
 import { useAISession } from './hooks/useAISession';
 import { useWebSpeechSession } from './hooks/useWebSpeechSession';
 import { useMeetingRecorder } from './hooks/useMeetingRecorder';
+import { useMeetingRoute } from './hooks/useMeetingRoute';
 import Header from './components/Header';
 import RecorderControls from './components/RecorderControls';
 import MinutesDisplay from './components/MinutesDisplay';
@@ -78,6 +79,13 @@ const App: React.FC = () => {
   const timeFilterRef = useRef<{ startDate?: Date; endDate?: Date }>({});
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [showSelectedTranscript, setShowSelectedTranscript] = useState(false);
+  // Mỗi cuộc họp có URL riêng /m/<id> → nút Back của trình duyệt quay về danh sách
+  const { openMeeting, closeMeeting } = useMeetingRoute({
+    userUid: user?.uid,
+    meetings: pastMeetings,
+    onOpen: (meeting) => { setSelectedMeeting(meeting); setShowSelectedTranscript(false); },
+    onClose: () => { setSelectedMeeting(null); setShowSelectedTranscript(false); },
+  });
   const [userSettings, setUserSettings] = useState<UserSettings>({ driveEnabled: false });
   const [isDriveAuthorizing, setIsDriveAuthorizing] = useState(false);
 
@@ -700,7 +708,7 @@ const App: React.FC = () => {
             />
             <MeetingHistory
               meetings={pastMeetings}
-              onSelect={setSelectedMeeting}
+              onSelect={openMeeting}
               onDelete={handleDeleteMeeting}
               onDeleteAll={handleDeleteAllMeetings}
               isLoading={isMeetingsLoading}
@@ -716,7 +724,7 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-y-auto hide-scrollbar space-y-4">
             <div className="flex items-center justify-between">
               <button
-                onClick={() => { setSelectedMeeting(null); setShowSelectedTranscript(false); }}
+                onClick={closeMeeting}
                 className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-xs border border-slate-100 transition-colors"
               >
                 <i className="fas fa-chevron-left"></i> {t.back}
@@ -866,7 +874,7 @@ const App: React.FC = () => {
                     console.error('Failed to update minutes:', err)
                   );
                 }}
-                onReset={() => setSelectedMeeting(null)}
+                onReset={closeMeeting}
                 onRenameTranscript={(token, to) => {
                   const nextT = replaceSpeakerInText(selectedMeeting.translatedTranscript || '', token, to);
                   setSelectedMeeting(prev => prev ? { ...prev, translatedTranscript: nextT } : prev);
