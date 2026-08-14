@@ -5,6 +5,7 @@ import { auth, exchangeDriveCodeFn, refreshDriveTokenFn } from './services/fireb
 import { gmailService } from './services/gmailService';
 import { cryptoService } from './services/cryptoService';
 import { meetingService } from './services/meetingService';
+import { shareService } from './services/shareService';
 import { userSettingsService } from './services/userSettingsService';
 import { driveService } from './services/driveService';
 import { apiKeyService } from './services/apiKeyService';
@@ -14,6 +15,8 @@ import { useAISession } from './hooks/useAISession';
 import { useWebSpeechSession } from './hooks/useWebSpeechSession';
 import { useMeetingRecorder } from './hooks/useMeetingRecorder';
 import { useMeetingRoute } from './hooks/useMeetingRoute';
+import { useMeetingShare } from './hooks/useMeetingShare';
+import ShareMeetingDialog from './components/ShareMeetingDialog';
 import Header from './components/Header';
 import RecorderControls from './components/RecorderControls';
 import MinutesDisplay from './components/MinutesDisplay';
@@ -85,6 +88,15 @@ const App: React.FC = () => {
     meetings: pastMeetings,
     onOpen: (meeting) => { setSelectedMeeting(meeting); setShowSelectedTranscript(false); },
     onClose: () => { setSelectedMeeting(null); setShowSelectedTranscript(false); },
+  });
+  // Chia sẻ cuộc họp cho đồng nghiệp qua link /s/<id>#k=<khoá>
+  const meetingShare = useMeetingShare({
+    user,
+    meeting: selectedMeeting,
+    onShareIdChange: (shareId) => {
+      setSelectedMeeting((prev: any) => prev ? { ...prev, shareId: shareId ?? undefined } : prev);
+      setPastMeetings(prev => prev.map(m => m.id === selectedMeeting?.id ? { ...m, shareId: shareId ?? undefined } : m));
+    },
   });
   const [userSettings, setUserSettings] = useState<UserSettings>({ driveEnabled: false });
   const [isDriveAuthorizing, setIsDriveAuthorizing] = useState(false);
@@ -397,12 +409,16 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMeeting = async (meetingId: string) => {
+    // Xoá cuộc họp thì link chia sẻ của nó phải chết theo, đừng để lại link mồ côi
+    const shareId = pastMeetings.find(m => m.id === meetingId)?.shareId;
+    if (shareId) await shareService.deleteShare(shareId);
     await meetingService.deleteMeeting(meetingId);
     setPastMeetings(prev => prev.filter(m => m.id !== meetingId));
   };
 
   const handleDeleteAllMeetings = async () => {
     if (!user) return;
+    await shareService.deleteAllShares(user.uid);
     await meetingService.deleteAllMeetings(user.uid);
     setPastMeetings([]);
     setHasMoreMeetings(false);
@@ -679,6 +695,22 @@ const App: React.FC = () => {
           initialTab={settingsTab}
         />
 
+        {user && selectedMeeting && (
+          <ShareMeetingDialog
+            isOpen={meetingShare.isOpen}
+            onClose={meetingShare.close}
+            userUid={user.uid}
+            share={meetingShare.share}
+            shareKeyRaw={meetingShare.keyRaw}
+            hasAudio={meetingShare.hasAudio}
+            isBusy={meetingShare.isBusy}
+            errorMsg={meetingShare.errorMsg === 'DRIVE_FAILED' ? t.shareAudioFailed : meetingShare.errorMsg}
+            onCreate={meetingShare.create}
+            onUpdate={meetingShare.update}
+            onRevoke={meetingShare.revoke}
+          />
+        )}
+
         {status === RecordingStatus.IDLE && !selectedMeeting && (
           <div className="flex-1 overflow-y-auto hide-scrollbar space-y-6">
             {keyWarning && (
@@ -730,6 +762,18 @@ const App: React.FC = () => {
                 <i className="fas fa-chevron-left"></i> {t.back}
               </button>
               <div className="flex items-center gap-2">
+                {!selectedMeeting.draft && !selectedMeeting.locked && (
+                  <button
+                    onClick={meetingShare.open}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                      selectedMeeting.shareId
+                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <i className="fas fa-user-group"></i> {t.shareMeeting}
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSelectedTranscript(!showSelectedTranscript)}
                   className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
@@ -868,8 +912,11 @@ const App: React.FC = () => {
                 onSendEmail={handleSendEmail}
                 onSave={(updated) => {
                   meetingService.updateMinutes(selectedMeeting.id, updated, selectedMeeting.encrypted === true).then(() => {
-                    setSelectedMeeting({ ...selectedMeeting, minutes: updated });
+                    const next = { ...selectedMeeting, minutes: updated };
+                    setSelectedMeeting(next);
                     setPastMeetings(prev => prev.map(m => m.id === selectedMeeting.id ? { ...m, minutes: updated } : m));
+                    // Link chia sẻ phải theo kịp bản vừa sửa
+                    meetingShare.syncPayload(next);
                   }).catch(err =>
                     console.error('Failed to update minutes:', err)
                   );
@@ -879,7 +926,9 @@ const App: React.FC = () => {
                   const nextT = replaceSpeakerInText(selectedMeeting.translatedTranscript || '', token, to);
                   setSelectedMeeting(prev => prev ? { ...prev, translatedTranscript: nextT } : prev);
                   setPastMeetings(prev => prev.map(m => m.id === selectedMeeting.id ? { ...m, translatedTranscript: nextT } : m));
-                  meetingService.updateTranslated(selectedMeeting.id, nextT, selectedMeeting.encrypted === true).catch(err =>
+                  meetingService.updateTranslated(selectedMeeting.id, nextT, selectedMeeting.encrypted === true).then(() =>
+                    meetingShare.syncPayload({ ...selectedMeeting, translatedTranscript: nextT })
+                  ).catch(err =>
                     console.error('Failed to update translated transcript:', err)
                   );
                 }}

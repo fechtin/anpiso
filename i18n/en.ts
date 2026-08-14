@@ -300,6 +300,39 @@ const en: TranslationKeys = {
   copy: 'Copy',
   copied: 'Copied!',
   copyLink: 'Copy link',
+
+  // Sharing a meeting with colleagues
+  shareMeeting: 'Share',
+  shareMeetingTitle: 'Share meeting',
+  shareMeetingDesc: 'Recipients must sign in with Google using the exact email you pick.',
+  shareRecipients: 'People with access',
+  shareIncludeAudio: 'Include audio recording',
+  shareIncludeAudioNone: 'This meeting has no audio file on Drive',
+  shareCreate: 'Create share link',
+  shareUpdate: 'Update access',
+  shareRevoke: 'Revoke link',
+  shareRevokeConfirm: 'Revoke this share link? People you granted access will lose it.',
+  shareLinkLabel: 'Share link',
+  shareLinkKeyNote: 'Send the whole link — everything after # is the decryption key; without it the page cannot open.',
+  shareNoRecipients: 'Pick at least one email',
+  shareStaleWarning: 'This device does not hold the link’s original key, so the link still shows the older content. Restore your key in Settings → Encryption, or create a new link.',
+  shareAudioFailed: 'Link created, but access to the audio file could not be granted. Check the Drive connection and press Update access.',
+
+  // Shared-link viewer page
+  sharedBy: 'Shared by',
+  sharedSignInTitle: 'Sign in to view',
+  sharedSignInMsg: 'These minutes were shared privately. Sign in with the email that was granted access.',
+  sharedSignIn: 'Sign in with Google',
+  sharedLoading: 'Opening minutes...',
+  sharedDenied: 'No access',
+  sharedDeniedMsg: 'The signed-in account is not on the share list — or the link has been revoked. Try signing in with the exact email that was granted access.',
+  sharedNotFound: 'Link no longer valid',
+  sharedNotFoundMsg: 'This link has been revoked or never existed.',
+  sharedBadLink: 'Invalid link',
+  sharedBadLinkMsg: 'The decryption key is missing — the link was probably truncated. Ask the sender for the full link.',
+  sharedAudio: 'Audio recording',
+  sharedOpenInDrive: 'Open in Google Drive',
+  sharedSwitchAccount: 'Sign in with another account',
 };
 
 export default en;

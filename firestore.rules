@@ -10,6 +10,19 @@ service cloud.firestore {
                                   && resource.data.ownerUid == request.auth.uid;
     }
 
+    // Link chia sẻ cuộc họp. Doc chỉ chứa ciphertext (khoá nằm trong fragment URL,
+    // không bao giờ tới server) nên đọc được doc vẫn chưa đọc được nội dung.
+    match /shares/{shareId} {
+      allow read: if request.auth != null
+                  && (resource.data.ownerUid == request.auth.uid
+                      || (request.auth.token.email_verified == true
+                          && request.auth.token.email.lower() in resource.data.allowedEmails));
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null
+                            && resource.data.ownerUid == request.auth.uid;
+    }
+
     match /contacts/{contactId} {
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;

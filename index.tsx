@@ -11,11 +11,13 @@ import React, { useState, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ViewerPage from './pages/ViewerPage';
+import SharedMeetingPage from './pages/SharedMeetingPage';
 import { LocaleContext, detectLocale, getTranslations, type Locale } from './i18n';
 
 function Root() {
   const path = window.location.pathname;
   const viewMatch = path.match(/^\/view\/([a-zA-Z0-9]+)$/);
+  const shareMatch = path.match(/^\/s\/([A-Za-z0-9_-]+)$/);
 
   const [locale, setLocaleState] = useState<Locale>(detectLocale);
   const setLocale = (l: Locale) => {
@@ -26,7 +28,11 @@ function Root() {
     locale, setLocale, t: getTranslations(locale),
   }), [locale]);
 
-  const content = viewMatch ? <ViewerPage roomId={viewMatch[1]} /> : <App />;
+  const content = viewMatch
+    ? <ViewerPage roomId={viewMatch[1]} />
+    : shareMatch
+      ? <SharedMeetingPage shareId={shareMatch[1]} />
+      : <App />;
 
   return (
     <LocaleContext.Provider value={localeCtx}>

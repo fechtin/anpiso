@@ -5,6 +5,7 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
+  deleteField,
   doc,
   query,
   where,
@@ -177,6 +178,13 @@ export const meetingService = {
     const data = snapshot.data();
     if (data.ownerUid !== userUid) return null;
     return decryptMeetingDoc(snapshot.id, data);
+  },
+
+  /** Ghim id link chia sẻ lên meeting doc để tra cứu trực tiếp (null = đã thu hồi). */
+  async setShareId(meetingId: string, shareId: string | null): Promise<void> {
+    await updateDoc(doc(db, MEETINGS_COLLECTION, meetingId), {
+      shareId: shareId ?? deleteField(),
+    });
   },
 
   async deleteMeeting(meetingId: string): Promise<void> {

@@ -298,6 +298,39 @@ const vi = {
   copy: 'Sao chép',
   copied: 'Đã sao chép!',
   copyLink: 'Sao chép link',
+
+  // Chia sẻ cuộc họp cho đồng nghiệp
+  shareMeeting: 'Chia sẻ',
+  shareMeetingTitle: 'Chia sẻ cuộc họp',
+  shareMeetingDesc: 'Người nhận phải đăng nhập Google bằng đúng email bạn chọn mới xem được.',
+  shareRecipients: 'Người được xem',
+  shareIncludeAudio: 'Kèm file ghi âm',
+  shareIncludeAudioNone: 'Cuộc họp này chưa có file ghi âm trên Drive',
+  shareCreate: 'Tạo link chia sẻ',
+  shareUpdate: 'Cập nhật quyền',
+  shareRevoke: 'Thu hồi link',
+  shareRevokeConfirm: 'Thu hồi link chia sẻ? Người đã được cấp sẽ không xem được nữa.',
+  shareLinkLabel: 'Link chia sẻ',
+  shareLinkKeyNote: 'Gửi nguyên link — phần sau dấu # là khoá giải mã, thiếu nó thì không mở được.',
+  shareNoRecipients: 'Chọn ít nhất một email',
+  shareStaleWarning: 'Thiết bị này chưa có khoá gốc của link nên nội dung link đang là bản cũ. Khôi phục khoá trong Thiết lập → Mã hoá, hoặc tạo link mới.',
+  shareAudioFailed: 'Đã tạo link nhưng chưa cấp được quyền file ghi âm. Kiểm tra kết nối Drive rồi bấm Cập nhật quyền.',
+
+  // Trang xem link chia sẻ
+  sharedBy: 'Chia sẻ bởi',
+  sharedSignInTitle: 'Đăng nhập để xem',
+  sharedSignInMsg: 'Biên bản này được chia sẻ riêng. Đăng nhập bằng email đã được cấp quyền.',
+  sharedSignIn: 'Đăng nhập bằng Google',
+  sharedLoading: 'Đang mở biên bản...',
+  sharedDenied: 'Không có quyền xem',
+  sharedDeniedMsg: 'Tài khoản đang đăng nhập không nằm trong danh sách được chia sẻ — hoặc link đã bị thu hồi. Thử đăng nhập bằng đúng email được cấp quyền.',
+  sharedNotFound: 'Link không còn hiệu lực',
+  sharedNotFoundMsg: 'Link này đã bị thu hồi hoặc chưa từng tồn tại.',
+  sharedBadLink: 'Link không hợp lệ',
+  sharedBadLinkMsg: 'Thiếu khoá giải mã — link có thể đã bị cắt ngắn khi gửi. Xin lại link đầy đủ từ người chia sẻ.',
+  sharedAudio: 'File ghi âm',
+  sharedOpenInDrive: 'Mở trong Google Drive',
+  sharedSwitchAccount: 'Đăng nhập tài khoản khác',
 };
 
 export type TranslationKeys = {

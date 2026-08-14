@@ -300,6 +300,39 @@ const ko: TranslationKeys = {
   copy: '복사',
   copied: '복사됨!',
   copyLink: '링크 복사',
+
+  // 회의록 공유
+  shareMeeting: '공유',
+  shareMeetingTitle: '회의 공유',
+  shareMeetingDesc: '수신자는 지정한 이메일과 동일한 Google 계정으로 로그인해야 열람할 수 있습니다.',
+  shareRecipients: '열람 가능한 사람',
+  shareIncludeAudio: '녹음 파일 포함',
+  shareIncludeAudioNone: '이 회의에는 Drive에 저장된 녹음 파일이 없습니다',
+  shareCreate: '공유 링크 만들기',
+  shareUpdate: '권한 업데이트',
+  shareRevoke: '링크 취소',
+  shareRevokeConfirm: '공유 링크를 취소할까요? 권한을 부여받은 사람은 더 이상 열람할 수 없습니다.',
+  shareLinkLabel: '공유 링크',
+  shareLinkKeyNote: '링크 전체를 보내세요 — # 뒤는 복호화 키이며, 없으면 열 수 없습니다.',
+  shareNoRecipients: '이메일을 하나 이상 선택하세요',
+  shareStaleWarning: '이 기기에 링크의 원본 키가 없어 링크는 이전 내용을 보여줍니다. 설정 → 암호화에서 키를 복원하거나 새 링크를 만드세요.',
+  shareAudioFailed: '링크는 생성했지만 녹음 파일 권한을 부여하지 못했습니다. Drive 연결을 확인한 뒤 권한 업데이트를 누르세요.',
+
+  // 공유 링크 열람 페이지
+  sharedBy: '공유한 사람',
+  sharedSignInTitle: '로그인 후 열람',
+  sharedSignInMsg: '이 회의록은 비공개로 공유되었습니다. 권한을 받은 이메일로 로그인하세요.',
+  sharedSignIn: 'Google로 로그인',
+  sharedLoading: '회의록을 여는 중...',
+  sharedDenied: '열람 권한 없음',
+  sharedDeniedMsg: '로그인한 계정이 공유 목록에 없거나 링크가 취소되었습니다. 권한을 부여받은 이메일로 다시 로그인해 보세요.',
+  sharedNotFound: '유효하지 않은 링크',
+  sharedNotFoundMsg: '이 링크는 취소되었거나 존재한 적이 없습니다.',
+  sharedBadLink: '잘못된 링크',
+  sharedBadLinkMsg: '복호화 키가 없습니다 — 링크가 잘렸을 수 있습니다. 공유자에게 전체 링크를 다시 요청하세요.',
+  sharedAudio: '녹음 파일',
+  sharedOpenInDrive: 'Google Drive에서 열기',
+  sharedSwitchAccount: '다른 계정으로 로그인',
 };
 
 export default ko;

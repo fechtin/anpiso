@@ -171,4 +171,47 @@ export const driveService = {
     if (!res.ok) throw new Error(`Drive key load error: ${res.status}`);
     return res.text();
   },
+
+  /**
+   * Cấp quyền đọc file audio cho đồng nghiệp theo email khi chia sẻ cuộc họp.
+   * Scope `drive.file` đủ quyền vì file audio do chính app tạo.
+   * Không gửi mail thông báo — link chia sẻ của Anpiso mới là kênh thông báo.
+   */
+  async grantReaders(accessToken: string, fileId: string, emails: string[]): Promise<void> {
+    for (const email of emails) {
+      const res = await fetch(`${DRIVE_API}/files/${fileId}/permissions?sendNotificationEmail=false`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'reader', type: 'user', emailAddress: email }),
+      });
+      if (res.status === 401) throw new Error('TOKEN_EXPIRED');
+      // 400 khi email không phải tài khoản Google — bỏ qua người đó, đừng chặn cả link
+      if (!res.ok && res.status !== 400) throw new Error(`Drive permission error: ${res.status}`);
+    }
+  },
+
+  /**
+   * Gỡ quyền của ĐÚNG những email được liệt kê. Không bao giờ gỡ sạch —
+   * file có thể đang được user chia sẻ tay ngoài Drive, không phải việc của app.
+   */
+  async revokeReaders(accessToken: string, fileId: string, emails: string[]): Promise<void> {
+    if (emails.length === 0) return;
+    const searchParams = new URLSearchParams({ fields: 'permissions(id,role,emailAddress)' });
+    const listRes = await fetch(`${DRIVE_API}/files/${fileId}/permissions?${searchParams}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (listRes.status === 401) throw new Error('TOKEN_EXPIRED');
+    if (!listRes.ok) throw new Error(`Drive permission list error: ${listRes.status}`);
+
+    const wanted = emails.map(e => e.toLowerCase());
+    const permissions: any[] = (await listRes.json()).permissions || [];
+    for (const p of permissions) {
+      if (p.role === 'owner') continue;
+      if (!wanted.includes((p.emailAddress || '').toLowerCase())) continue;
+      await fetch(`${DRIVE_API}/files/${fileId}/permissions/${p.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    }
+  },
 };
