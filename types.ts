@@ -14,11 +14,19 @@ export interface User {
   driveAccessToken?: string;
 }
 
+/** Engine gỡ băng cả cuộc họp. 'transcribe' = model chuyên dụng (nhanh ~10x,
+ *  giữ đúng tên riêng, KHÔNG có mốc [MM:SS]); 'flash' = model đa năng có mốc giờ. */
+export type TranscriptionEngine = 'transcribe' | 'flash';
+
+export const DEFAULT_TRANSCRIPTION_ENGINE: TranscriptionEngine = 'transcribe';
+
 export interface UserSettings {
   driveEnabled: boolean;
   driveFolderId?: string;
   /** Danh từ riêng thường dùng (tên người/sản phẩm/công ty) — cấp cho AI để nhận dạng & viết đúng chính tả. */
   customNames?: string[];
+  /** Thiếu = dùng DEFAULT_TRANSCRIPTION_ENGINE. */
+  transcriptionEngine?: TranscriptionEngine;
   updatedAt?: any;
 }
 

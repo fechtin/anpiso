@@ -10,7 +10,7 @@ import { userSettingsService } from './services/userSettingsService';
 import { driveService } from './services/driveService';
 import { apiKeyService } from './services/apiKeyService';
 import { replaceSpeakerInText } from './utils/renameSpeaker';
-import { RecordingStatus, AudioSource, MeetingMinutes, User, UserSettings, DriveLinks, SttEngine, WebSpeechLang, TargetLanguage, AppMode } from './types';
+import { RecordingStatus, AudioSource, MeetingMinutes, User, UserSettings, DriveLinks, SttEngine, WebSpeechLang, TargetLanguage, AppMode, TranscriptionEngine } from './types';
 import { useAISession } from './hooks/useAISession';
 import { useWebSpeechSession } from './hooks/useWebSpeechSession';
 import { useMeetingRecorder } from './hooks/useMeetingRecorder';
@@ -210,7 +210,8 @@ const App: React.FC = () => {
       .map(l => `[${formatTime(l.timestamp)}] ${l.text}`)
       .join('\n'),
     (blob: Blob) => uploadAudioAtStop(blob),
-    userSettings.customNames
+    userSettings.customNames,
+    userSettings.transcriptionEngine
   );
 
   // WebRTC sharing
@@ -382,7 +383,8 @@ const App: React.FC = () => {
     try {
       const token = await getDriveToken();
       const audioBlob = await driveService.downloadFile(token, m.driveLinks.audioFileId);
-      const transcript = await aiService.transcribeFullAudio(audioBlob, audioBlob.type || 'audio/webm', userSettings.customNames);
+      const transcript = await aiService.transcribeFullAudio(
+        audioBlob, audioBlob.type || 'audio/webm', userSettings.customNames, userSettings.transcriptionEngine);
       if (!transcript.trim()) throw new Error('Empty transcript from audio');
       await meetingService.updateTranscript(m.id, transcript, m.encrypted === true);
 
@@ -661,6 +663,11 @@ const App: React.FC = () => {
     if (user) await userSettingsService.updateSettings(user.uid, { customNames: names });
   };
 
+  const handleSelectEngine = async (engine: TranscriptionEngine) => {
+    setUserSettings(prev => ({ ...prev, transcriptionEngine: engine }));
+    if (user) await userSettingsService.updateSettings(user.uid, { transcriptionEngine: engine });
+  };
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -692,6 +699,7 @@ const App: React.FC = () => {
           isDriveAuthorizing={isDriveAuthorizing}
           onToggleDrive={handleToggleDrive}
           onSaveCustomNames={handleSaveCustomNames}
+          onSelectEngine={handleSelectEngine}
           initialTab={settingsTab}
         />
 

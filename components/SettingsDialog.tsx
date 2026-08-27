@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserSettings } from '../types';
+import { UserSettings, TranscriptionEngine, DEFAULT_TRANSCRIPTION_ENGINE } from '../types';
 import { apiKeyService } from '../services/apiKeyService';
 import { translateKeyService } from '../services/translateKeyService';
 import { useLocale } from '../i18n';
@@ -14,6 +14,8 @@ interface Props {
   onToggleDrive: () => void;
   /** Lưu danh sách tên riêng (đồng bộ Firestore). */
   onSaveCustomNames: (names: string[]) => void;
+  /** Chọn engine gỡ băng cả cuộc họp (đồng bộ Firestore). */
+  onSelectEngine: (engine: TranscriptionEngine) => void;
   /** Tab mở sẵn khi bật dialog (vd banner "thiếu key" mở thẳng tab API Keys). */
   initialTab?: 'general' | 'keys';
 }
@@ -35,8 +37,9 @@ const parseNames = (raw: string): string[] => {
 };
 
 /** Trung tâm cài đặt: modal giữa màn hình trên desktop, full-screen sheet trên mobile. */
-const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onToggleDrive, onSaveCustomNames, initialTab = 'general' }: Props) => {
+const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onToggleDrive, onSaveCustomNames, onSelectEngine, initialTab = 'general' }: Props) => {
   const { t } = useLocale();
+  const engine = userSettings.transcriptionEngine || DEFAULT_TRANSCRIPTION_ENGINE;
   const [geminiKeys, setGeminiKeys] = useState<string[]>([]);
   const [showKeys, setShowKeys] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
@@ -210,6 +213,43 @@ const SettingsDialog = ({ isOpen, onClose, userSettings, isDriveAuthorizing, onT
           {/* Mã hoá đầu-cuối (component sẵn có) */}
           <section className="bg-slate-50/60 border border-slate-100 rounded-2xl p-5">
             <EncryptionSettings userSettings={userSettings} />
+          </section>
+
+          {/* Engine gỡ băng cả cuộc họp */}
+          <section className="bg-slate-50/60 border border-slate-100 rounded-2xl p-5">
+            <SectionHead
+              icon="fas fa-wand-magic-sparkles" iconBg="bg-sky-50" iconColor="text-sky-500"
+              title={t.transcriptionEngineTitle}
+              subtitle={t.transcriptionEngineSubtitle}
+            />
+            <div className="grid sm:grid-cols-2 gap-2.5">
+              {([
+                { id: 'transcribe' as const, name: t.engineTranscribeName, desc: t.engineTranscribeDesc },
+                { id: 'flash' as const, name: t.engineFlashName, desc: t.engineFlashDesc },
+              ]).map(opt => {
+                const active = engine === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => onSelectEngine(opt.id)}
+                    className={`text-left p-3.5 rounded-xl border transition-colors ${
+                      active
+                        ? 'bg-white border-sky-400 ring-1 ring-sky-100'
+                        : 'bg-white/50 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <i className={`fas ${active ? 'fa-circle-dot text-sky-500' : 'fa-circle text-slate-300'} text-xs`}></i>
+                      <span className="text-sm font-semibold text-slate-700">{opt.name}</span>
+                      {opt.id === DEFAULT_TRANSCRIPTION_ENGINE && (
+                        <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded">{t.engineDefaultBadge}</span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-slate-400 leading-relaxed">{opt.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           {/* Tên riêng thường dùng — bias nhận dạng giọng nói & chính tả */}

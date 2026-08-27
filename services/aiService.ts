@@ -1,11 +1,12 @@
 
 import { GoogleGenAI, Type } from '@google/genai';
 import { blobToBase64 } from '../utils/audioUtils';
-import { MeetingMinutes, TargetLanguage } from '../types';
+import { MeetingMinutes, TargetLanguage, TranscriptionEngine, DEFAULT_TRANSCRIPTION_ENGINE } from '../types';
 import { logService } from './logService';
 import { apiKeyService } from './apiKeyService';
 import { translateService } from './translateService';
 import { modelService } from './modelService';
+import { transcribeService } from './transcribeService';
 
 const LANG_NAMES: Record<TargetLanguage, string> = {
   vi: 'Vietnamese',
@@ -286,8 +287,29 @@ export const aiService = {
    * Gỡ băng lại TOÀN BỘ file audio (tải từ Drive về) qua Gemini Files API —
    * không giới hạn inline base64, một request cho cả cuộc họp, timestamps tuyệt đối.
    */
-  async transcribeFullAudio(blob: Blob, mimeType: string = 'audio/webm', customNames?: string[]): Promise<string> {
-    logService.add('text', 'req', 'transcribeFullAudio', `Size: ${blob.size} bytes, Type: ${mimeType}`);
+  async transcribeFullAudio(
+    blob: Blob,
+    mimeType: string = 'audio/webm',
+    customNames?: string[],
+    engine: TranscriptionEngine = DEFAULT_TRANSCRIPTION_ENGINE,
+  ): Promise<string> {
+    logService.add('text', 'req', 'transcribeFullAudio', `Size: ${blob.size} bytes, Type: ${mimeType}, engine: ${engine}`);
+
+    // Engine chuyên dụng: nhanh hơn nhiều nhưng là một API riêng (Interactions),
+    // hết quota / cắt ngắn / lỗi mạng đều rơi về flash thay vì mất cả transcript.
+    if (engine === 'transcribe') {
+      try {
+        const text = await withRetry(
+          'transcribeModel',
+          () => transcribeService.transcribeFullAudio(blob, mimeType, customNames),
+        );
+        if (text) return text;
+        logService.add('text', 'info', 'transcribeModel_WARN', 'Transcript rỗng — chuyển sang flash');
+      } catch (e: any) {
+        logService.add('text', 'info', 'transcribeModel_ERR', `${e?.message || e} — chuyển sang flash`);
+      }
+    }
+
     const ai = createClient();
 
     const uploaded = await ai.files.upload({ file: blob, config: { mimeType } });

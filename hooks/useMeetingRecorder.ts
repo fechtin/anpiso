@@ -1,6 +1,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { RecordingStatus, MeetingMinutes, AudioSource, TargetLanguage } from '../types';
+import { RecordingStatus, MeetingMinutes, AudioSource, TargetLanguage, TranscriptionEngine, DEFAULT_TRANSCRIPTION_ENGINE } from '../types';
 import { fixWebmDuration } from '../utils/audioUtils';
 import { formatDateTimeRange } from '../utils/textUtils';
 import { aiService } from '../services/aiService';
@@ -29,7 +29,8 @@ export const useMeetingRecorder = (
   translationEnabled: boolean = true,
   getLiveTranscriptText?: () => string,
   onAudioReady?: (blob: Blob) => void,
-  customNames: string[] = []
+  customNames: string[] = [],
+  transcriptionEngine: TranscriptionEngine = DEFAULT_TRANSCRIPTION_ENGINE
 ) => {
   // Live transcript làm nguồn dự phòng khi gỡ băng HQ thất bại toàn bộ
   const getLiveTextRef = useRef(getLiveTranscriptText);
@@ -46,6 +47,9 @@ export const useMeetingRecorder = (
 
   const customNamesRef = useRef(customNames);
   useEffect(() => { customNamesRef.current = customNames; }, [customNames]);
+
+  const engineRef = useRef(transcriptionEngine);
+  useEffect(() => { engineRef.current = transcriptionEngine; }, [transcriptionEngine]);
 
   const [status, setStatus] = useState<RecordingStatus>(RecordingStatus.IDLE);
   const [minutes, setMinutes] = useState<MeetingMinutes | null>(null);
@@ -100,7 +104,7 @@ export const useMeetingRecorder = (
   const transcribeWholeRecording = async (blob: Blob, mimeType: string): Promise<string> => {
     setIsProcessingSegment(true);
     try {
-      const text = await aiService.transcribeFullAudio(blob, mimeType, customNamesRef.current);
+      const text = await aiService.transcribeFullAudio(blob, mimeType, customNamesRef.current, engineRef.current);
       return text?.trim() || '';
     } catch (err: any) {
       console.error('Full-audio transcription failed:', err);
