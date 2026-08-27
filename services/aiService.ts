@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from '@google/genai';
 import { blobToBase64 } from '../utils/audioUtils';
+import { hasTimestamps, stripTimestamps } from '../utils/textUtils';
 import { MeetingMinutes, TargetLanguage, TranscriptionEngine, DEFAULT_TRANSCRIPTION_ENGINE } from '../types';
 import { logService } from './logService';
 import { apiKeyService } from './apiKeyService';
@@ -367,6 +368,12 @@ export const aiService = {
     const targetUpper = targetName.toUpperCase();
     // Mode "Ghi âm & Tóm tắt": biên bản viết theo ngôn ngữ của chính transcript
     const minutesLang = translate ? targetName : 'the SAME language as the transcript (its dominant language)';
+    // Engine gỡ băng chuyên dụng trả transcript KHÔNG có mốc giờ. Nếu vẫn ra lệnh
+    // "giữ nguyên [MM:SS]", model lấy giờ trong TIME RANGE rồi BỊA ra mốc tăng dần.
+    const timestamped = hasTimestamps(fullTranscript);
+    const transcriptTimeRule = timestamped
+      ? 'keep all [MM:SS] timestamps exactly as they are. Each timestamp segment MUST start on a new line (use \\n before each [MM:SS] timestamp).'
+      : 'the transcript has NO timestamps — do NOT invent, add or guess any timestamp. Split it into readable paragraphs (use \\n between paragraphs), one per topic or speaker turn.';
 
     const prompt = translate
       ? `You are a professional meeting secretary.
@@ -385,7 +392,7 @@ export const aiService = {
             - "decisions": every decision that was agreed, one string per decision. Empty array if none.
             - "openIssues": points raised but left unresolved or needing follow-up. Empty array if none.
             Preserve every number, date, amount, deadline and proper name mentioned. Do not put headings or bullet characters inside the texts — the app renders structure itself.${namesHint(customNames)}
-            - For "translatedTranscript": keep all [MM:SS] timestamps exactly as they are. Each timestamp segment MUST start on a new line (use \\n before each [MM:SS] timestamp). If a sentence is already in ${targetName}, keep it unchanged. Translate other languages to natural, professional corporate ${targetName}. Output ONLY the translated text.
+            - For "translatedTranscript": ${transcriptTimeRule} If a sentence is already in ${targetName}, keep it unchanged. Translate other languages to natural, professional corporate ${targetName}. Output ONLY the translated text.
 
             TIME RANGE: ${timeRange}
             TRANSCRIPT:
@@ -457,7 +464,7 @@ export const aiService = {
     if (translate) {
       properties.translatedTranscript = {
         type: Type.STRING,
-        description: `Full ${targetName} translation of the entire transcript. Keep [MM:SS] timestamps unchanged. Each timestamp segment MUST be on its own line separated by newline characters. Translate other languages to ${targetName}, keep existing ${targetName} as-is.`
+        description: `Full ${targetName} translation of the entire transcript. ${timestamped ? 'Keep [MM:SS] timestamps unchanged; each timestamp segment MUST be on its own line separated by newline characters.' : 'The transcript has no timestamps — never invent any; separate paragraphs with newline characters.'} Translate other languages to ${targetName}, keep existing ${targetName} as-is.`
       };
       required.push("translatedTranscript");
     }
@@ -477,6 +484,10 @@ export const aiService = {
         const data = JSON.parse(response.text);
         data.time = timeRange;
         if (!translate) data.translatedTranscript = "";
+        // Transcript nguồn không có mốc giờ thì bản dịch cũng không được có.
+        else if (!timestamped && data.translatedTranscript) {
+          data.translatedTranscript = stripTimestamps(data.translatedTranscript);
+        }
         logService.add('text', 'res', 'generateMinutes', data);
         return data;
       }, 'hq');

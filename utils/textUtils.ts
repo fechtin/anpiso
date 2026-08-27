@@ -43,6 +43,17 @@ export const formatDateTimeRange = (start: Date, end: Date): string => {
   return `${startTime} - ${endTime} ${dateStr}`;
 };
 
+/** Transcript có mốc giờ dạng [MM:SS] / [HH:MM:SS] không. Engine gỡ băng
+ *  chuyên dụng trả về transcript KHÔNG mốc, nên prompt biên bản phải biết để
+ *  không bịa mốc giờ ra. */
+export const hasTimestamps = (text: string): boolean => /\[\d{1,2}:\d{2}(:\d{2})?\]/.test(text);
+
+/** Xoá mốc giờ khỏi văn bản. Dùng khi transcript nguồn KHÔNG có mốc: model dịch
+ *  thỉnh thoảng vẫn bịa mốc từ TIME RANGE trong prompt (không tái hiện được theo
+ *  ý muốn), nên chặn tất định thay vì chỉ trông vào câu lệnh trong prompt. */
+export const stripTimestamps = (text: string): string =>
+  text.replace(/\[\d{1,2}:\d{2}(:\d{2})?\]\s*/g, '').replace(/\n{3,}/g, '\n\n').trim();
+
 // --- Language Detection ---
 
 export const containsKorean = (text: string): boolean => 
