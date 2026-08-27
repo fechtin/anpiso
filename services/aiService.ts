@@ -320,7 +320,15 @@ export const aiService = {
           ]}]
         });
         const result = response.text?.trim() || '';
-        logService.add('text', 'res', 'transcribeFullAudio', `Size: ${result.length} chars`);
+        // Gỡ băng cả cuộc họp trong 1 request → phải biết model có bị chạm trần
+        // output không, vì transcript cụt trông y hệt transcript hoàn chỉnh.
+        const finishReason = response.candidates?.[0]?.finishReason;
+        if (finishReason && finishReason !== 'STOP') {
+          const warn = `finishReason=${finishReason} — transcript CÓ THỂ BỊ CẮT ở ${result.length} ký tự`;
+          logService.add('text', 'info', 'transcribeFullAudio_WARN', warn);
+          console.warn('[transcribeFullAudio]', warn);
+        }
+        logService.add('text', 'res', 'transcribeFullAudio', `Size: ${result.length} chars, finish: ${finishReason || 'n/a'}`);
         return result;
       }, 'hq');
     } finally {
