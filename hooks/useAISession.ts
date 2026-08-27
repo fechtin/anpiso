@@ -2,12 +2,7 @@
 import { useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { encodeAudio } from '../utils/audioUtils';
-import {
-  cleanMultilingualSplits,
-  mergeSmartWordLevel,
-  isMeaningfulText,
-  isEndOfSentence,
-} from '../utils/textUtils';
+import { isMeaningfulText } from '../utils/textUtils';
 import { logService } from '../services/logService';
 import { apiKeyService } from '../services/apiKeyService';
 import { useTranslationQueue } from './useTranslationQueue';
@@ -120,7 +115,7 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
 
       const ai = new GoogleGenAI({ apiKey: apiKeyService.getGeminiApiKey() });
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        model: 'gemini-3.5-transcribe-live',
         callbacks: {
           onopen: () => {
             logService.add('audio', 'res', 'onopen', 'Live API Connected Successfully');
@@ -129,42 +124,48 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
             sessionPromise.then(s => { activeSessionRef.current = s; });
           },
           onmessage: async (msg: LiveServerMessage) => {
-            const inputT = msg.serverContent?.inputTranscription?.text;
-            if (inputT) {
+            // gemini-3.5-transcribe-live: interimInputTranscription là ảnh chụp TÍCH LUỸ
+            // của cả lượt nói (thay thế, KHÔNG nối chuỗi); inputTranscription là bản chốt của lượt đó.
+            const interim = msg.serverContent?.interimInputTranscription?.text;
+            if (interim) {
               const now = performance.now();
               const interval = lastTranscriptTimeRef.current > 0
                 ? Math.round(now - lastTranscriptTimeRef.current)
                 : 0;
               lastTranscriptTimeRef.current = now;
-              logService.add('audio', 'res', 'transcript', `+${interval}ms | "${inputT.substring(0, 60)}"`);
+              logService.add('audio', 'res', 'interim', `+${interval}ms | "${interim.substring(0, 60)}"`);
 
-              const prev = inputDraftRef.current;
-              const merged = mergeSmartWordLevel(prev, inputT);
-              if (!isMeaningfulText(merged)) {
+              if (!isMeaningfulText(interim)) return;
+              inputDraftRef.current = interim;
+              pendingDraftRef.current = interim;
+              if (!rafIdRef.current) {
+                rafIdRef.current = requestAnimationFrame(() => {
+                  if (pendingDraftRef.current !== null) {
+                    setInputDraft(pendingDraftRef.current);
+                    pendingDraftRef.current = null;
+                  }
+                  rafIdRef.current = null;
+                });
+              }
+              // Lưới an toàn: nếu bản chốt không về (mất kết nối giữa lượt) vẫn chốt câu.
+              if (inputFinalizeTimer.current) window.clearTimeout(inputFinalizeTimer.current);
+              inputFinalizeTimer.current = window.setTimeout(() => {
                 inputDraftRef.current = "";
                 setInputDraft("");
-              } else {
-                const fixedMerged = cleanMultilingualSplits(merged);
-                if (isEndOfSentence(fixedMerged)) {
-                  inputDraftRef.current = "";
-                  setInputDraft("");
-                  setTimeout(() => finalizeSentence(fixedMerged), 10);
-                } else {
-                  inputDraftRef.current = fixedMerged;
-                  pendingDraftRef.current = fixedMerged;
-                  if (!rafIdRef.current) {
-                    rafIdRef.current = requestAnimationFrame(() => {
-                      if (pendingDraftRef.current !== null) {
-                        setInputDraft(pendingDraftRef.current);
-                        pendingDraftRef.current = null;
-                      }
-                      rafIdRef.current = null;
-                    });
-                  }
-                  if (inputFinalizeTimer.current) window.clearTimeout(inputFinalizeTimer.current);
-                  inputFinalizeTimer.current = window.setTimeout(() => finalizeSentence(fixedMerged), 1200);
-                }
-              }
+                finalizeSentence(interim);
+              }, 3000);
+              return;
+            }
+
+            const finalT = msg.serverContent?.inputTranscription?.text;
+            if (finalT) {
+              logService.add('audio', 'res', 'transcript', `final | "${finalT.substring(0, 60)}"`);
+              if (inputFinalizeTimer.current) window.clearTimeout(inputFinalizeTimer.current);
+              lastTranscriptTimeRef.current = 0;
+              pendingDraftRef.current = null;
+              inputDraftRef.current = "";
+              setInputDraft("");
+              finalizeSentence(finalT);
             }
           },
           onerror: (err: any) => {
@@ -188,9 +189,13 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
           }
         },
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalities: [Modality.TEXT],
           systemInstruction,
-          inputAudioTranscription: {},
+          // adaptationPhrases là kênh bias tên riêng thật sự của model transcribe;
+          // systemInstruction MỘT MÌNH không sửa được chính tả tên (đã đo).
+          inputAudioTranscription: names && names.length > 0
+            ? { adaptationPhrases: names }
+            : {},
         }
       });
       sessionPromiseRef.current = sessionPromise;
