@@ -31,40 +31,70 @@ function createClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey: apiKeyService.getGeminiApiKey() });
 }
 
-/** Check if error is model overloaded (503 UNAVAILABLE) */
+/**
+ * Lỗi nên đổi sang model khác: 503 quá tải, hoặc 429 hết quota CỦA MODEL ĐÓ
+ * (quota free tier tính riêng từng model, nên model kia thường vẫn còn).
+ */
 function isModelOverloaded(error: any): boolean {
   if (!error) return false;
   const msg = (error.message || error.toString() || '').toLowerCase();
-  const code = error.code || error.status || 0;
-  return Number(code) === 503 || msg.includes('unavailable') || msg.includes('overloaded') || msg.includes('high demand');
+  const code = Number(error.code || error.status || 0);
+  return (
+    code === 503 || code === 429 ||
+    msg.includes('unavailable') || msg.includes('overloaded') || msg.includes('high demand') ||
+    msg.includes('resource_exhausted') || msg.includes('exceeded your current quota')
+  );
 }
 
+/** Riêng 429: hết quota, retry cùng model không cứu được — phải đổi model. */
+function isQuotaExceeded(error: any): boolean {
+  if (!error) return false;
+  const msg = (error.message || error.toString() || '').toLowerCase();
+  return Number(error.code || error.status || 0) === 429 ||
+    msg.includes('resource_exhausted') || msg.includes('exceeded your current quota');
+}
+
+/** Sau khoảng này thì thử lại primary — tránh kẹt ở fallback cả session. */
+const SLOT_REVERT_MS = 5 * 60 * 1000;
+
 /**
- * Model manager: tracks active model per slot.
- * When a model fails with 503, switches to the other and remembers it.
+ * Model manager: theo dõi model đang dùng cho từng slot.
+ * Model hỏng (503/429) → chuyển sang model còn lại, nhưng chỉ TẠM THỜI:
+ * quá SLOT_REVERT_MS thì tự quay về primary.
+ * KHÔNG dùng model *-preview làm fallback: free tier chỉ cho 20 request/ngày.
  */
-const modelSlots: Record<string, { primary: string; fallback: string; current: string }> = {
+const modelSlots: Record<string, { primary: string; fallback: string; current: string; swappedAt: number }> = {
   translateStream: {
-    primary: 'gemini-3.1-flash-lite',
-    fallback: 'gemini-3-flash-preview',
-    current: 'gemini-3.1-flash-lite',
+    primary: 'gemini-3.5-flash-lite',
+    fallback: 'gemini-3.1-flash-lite',
+    current: 'gemini-3.5-flash-lite',
+    swappedAt: 0,
   },
-  // Fallback khẩn cấp cho transcribe + biên bản khi model user chọn bị 503
+  // Fallback khẩn cấp cho transcribe + biên bản khi model chính bị 503/429
   hq: {
     primary: 'gemini-3.5-flash',
-    fallback: 'gemini-3-flash-preview',
+    fallback: 'gemini-3.5-flash-lite',
     current: 'gemini-3.5-flash',
+    swappedAt: 0,
   },
 };
 
 function getModel(slot: string): string {
-  return modelSlots[slot]?.current || modelSlots[slot]?.primary || '';
+  const s = modelSlots[slot];
+  if (!s) return '';
+  if (s.current !== s.primary && Date.now() - s.swappedAt > SLOT_REVERT_MS) {
+    s.current = s.primary;
+    s.swappedAt = 0;
+    logService.add('text', 'info', 'model-swap', `${slot}: reverted to ${s.primary}`);
+  }
+  return s.current;
 }
 
 function swapModel(slot: string): string {
   const s = modelSlots[slot];
   if (!s) return '';
   s.current = s.current === s.primary ? s.fallback : s.primary;
+  s.swappedAt = s.current === s.primary ? 0 : Date.now();
   logService.add('text', 'info', 'model-swap', `${slot}: switched to ${s.current}`);
   return s.current;
 }
@@ -109,7 +139,8 @@ async function withRetry<T>(label: string, fn: (model?: string) => Promise<T>, m
       }
 
       if (isModelOverloaded(e)) {
-        if (isLast) throw e;
+        // Hết quota mà không có model thay thế → chờ bao lâu cũng vô ích
+        if (isLast || (!modelSlot && isQuotaExceeded(e))) throw e;
         if (modelSlot) modelOverride = swapModel(modelSlot);
         const delay = BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
         logService.add('text', 'info', 'retry', `${label}: overloaded, retry ${attempt}/${MAX_ATTEMPTS - 1} in ${delay / 1000}s...`);
@@ -219,10 +250,10 @@ export const aiService = {
     logService.add('text', 'req', 'translateFull', `Size: ${text.length} chars`);
     const targetName = langName(targetLang);
     try {
-      return await withRetry('translateFull', async () => {
+      return await withRetry('translateFull', async (modelOverride?: string) => {
         const ai = createClient();
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: modelOverride || getModel('hq'),
           contents: [{ parts: [{ text: `Task: Translate the entire meeting transcript to ${targetName.toUpperCase()}.
 
           STRICT RULES:
@@ -239,7 +270,7 @@ export const aiService = {
         const result = response.text?.trim() || "";
         logService.add('text', 'res', 'translateFull', `Size: ${result.length} chars`);
         return result;
-      });
+      }, 'hq');
     } catch (e: any) {
       logService.add('text', 'info', 'translateFull_ERR', e.message);
       console.error("Full transcript translation error:", e);
