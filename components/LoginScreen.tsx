@@ -13,6 +13,11 @@ interface Props {
 const APK_VERSION = '1.0.0';
 const APK_SIZE = '5.8 MB';
 
+// Tên file mang số phiên bản: mỗi bản phát hành là một URL riêng, nên CDN không bao giờ
+// trả bản cũ cho người tải bản mới. Đổi APK_VERSION là link tự trỏ sang file mới —
+// nhớ đặt đúng tên file đó vào public/download/.
+const APK_URL = `/download/anpiso-${APK_VERSION}.apk`;
+
 const INK = '#1D1A17';
 const PAPER = '#FBFAF8';
 const LINE = '#E8E4DC';
@@ -274,7 +279,7 @@ const LoginScreen: React.FC<Props> = ({ onLoginSuccess }) => {
             </div>
             <div className="shrink-0 text-center">
               <a
-                href="/download/anpiso.apk"
+                href={APK_URL}
                 download
                 className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm text-white hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 shadow-lg whitespace-nowrap"
                 style={{ backgroundColor: INK, boxShadow: '0 10px 24px rgba(29,26,23,0.18)' }}
