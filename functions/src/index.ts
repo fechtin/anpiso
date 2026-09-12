@@ -12,10 +12,16 @@ export const exchangeDriveCode = onCall({ region: 'asia-northeast3' }, async (re
     throw new HttpsError('unauthenticated', 'Must be logged in');
   }
 
-  const { authCode } = request.data as { authCode: string };
+  const { authCode, source } = request.data as { authCode: string; source?: 'web' | 'native' };
   if (!authCode) {
     throw new HttpsError('invalid-argument', 'authCode is required');
   }
+
+  // Google đòi redirect_uri khác nhau tuỳ code sinh ra từ đâu:
+  // - 'postmessage' cho popup của Google Identity Services trên web
+  // - chuỗi RỖNG cho serverAuthCode của Google Sign-In native (Android/iOS)
+  // Sai giá trị thì token endpoint trả invalid_grant dù code hoàn toàn hợp lệ.
+  const redirectUri = source === 'native' ? '' : 'postmessage';
 
   const uid = request.auth.uid;
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -32,7 +38,7 @@ export const exchangeDriveCode = onCall({ region: 'asia-northeast3' }, async (re
       code: authCode,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: 'postmessage',
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
   });
