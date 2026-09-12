@@ -302,6 +302,13 @@ const en: TranslationKeys = {
   errorHideDetails: 'Hide details',
   errorLearnMore: 'Learn more',
 
+  // Android app download on the landing page
+  landingApkTitle: 'Long meetings? Get the Android app',
+  landingApkBody: 'In a browser, recording stops the moment the screen turns off. The Android app keeps recording with the device locked and in your pocket — built for long meetings.',
+  landingApkButton: 'Download for Android',
+  landingApkMeta: (version: string, size: string) => `Version ${version} · ${size} · Android 7.0 and up`,
+  landingApkNote: 'Direct download, not from the Play Store — your device will ask you to allow installs from this source. The web version still works as before, nothing to install.',
+
   // Recording with the screen off / app in background
   keepScreenOnTitle: 'Keep the screen on while recording',
   keepScreenOnIos: 'On iPhone/iPad, locking the device makes Safari stop capturing audio. Keep the screen on and Anpiso in the foreground for the whole meeting.',

@@ -8,6 +8,11 @@ interface Props {
   onLoginSuccess: (user: User) => void;
 }
 
+// Phải khớp versionName/kích thước APK trong android/app/build.gradle mỗi lần phát hành.
+// Hiển thị ngay trên nút tải để người dùng biết mình sắp tải cái gì.
+const APK_VERSION = '1.0.0';
+const APK_SIZE = '5.8 MB';
+
 const INK = '#1D1A17';
 const PAPER = '#FBFAF8';
 const LINE = '#E8E4DC';
@@ -254,6 +259,31 @@ const LoginScreen: React.FC<Props> = ({ onLoginSuccess }) => {
                 <p className="text-stone-500 text-sm leading-relaxed">{f.a}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Tải bản Android — bán bằng thứ bản web KHÔNG làm được: ghi tiếp khi tắt màn */}
+        <section className="py-16 sm:py-24 border-t" style={{ borderColor: LINE }}>
+          <div className="rounded-2xl border p-6 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10" style={{ borderColor: LINE, backgroundColor: '#FFFFFF' }}>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-3 leading-snug">
+                {t.landingApkTitle}
+              </h2>
+              <p className="text-sm sm:text-[15px] text-stone-600 leading-relaxed">{t.landingApkBody}</p>
+              <p className="text-[11px] text-stone-400 mt-4 leading-relaxed">{t.landingApkNote}</p>
+            </div>
+            <div className="shrink-0 text-center">
+              <a
+                href="/download/anpiso.apk"
+                download
+                className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm text-white hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 shadow-lg whitespace-nowrap"
+                style={{ backgroundColor: INK, boxShadow: '0 10px 24px rgba(29,26,23,0.18)' }}
+              >
+                <i className="fab fa-android text-base"></i>
+                {t.landingApkButton}
+              </a>
+              <p className="text-[11px] text-stone-400 mt-3">{t.landingApkMeta(APK_VERSION, APK_SIZE)}</p>
+            </div>
           </div>
         </section>
 

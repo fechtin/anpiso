@@ -300,6 +300,13 @@ const vi = {
   errorHideDetails: 'Ẩn chi tiết',
   errorLearnMore: 'Tìm hiểu thêm',
 
+  // Tải app Android trên landing page
+  landingApkTitle: 'Họp dài? Tải bản Android',
+  landingApkBody: 'Trên trình duyệt, màn hình tắt là ứng dụng ngừng ghi. Bản Android ghi tiếp cả khi bạn khoá máy và bỏ vào túi — tiện cho những buổi họp dài.',
+  landingApkButton: 'Tải file cài Android',
+  landingApkMeta: (version: string, size: string) => `Phiên bản ${version} · ${size} · Android 7.0 trở lên`,
+  landingApkNote: 'File cài trực tiếp, không qua CH Play — khi cài máy sẽ hỏi cho phép cài từ nguồn này, bạn chọn Cho phép. Bản web vẫn dùng bình thường, không cần cài gì.',
+
   // Ghi âm khi màn tắt / chạy nền
   keepScreenOnTitle: 'Giữ màn hình sáng khi đang ghi',
   keepScreenOnIos: 'Trên iPhone/iPad, khoá máy sẽ làm Safari dừng thu âm. Hãy để màn hình sáng và giữ Anpiso ở trên cùng suốt cuộc họp.',

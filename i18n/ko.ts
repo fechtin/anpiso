@@ -302,6 +302,13 @@ const ko: TranslationKeys = {
   errorHideDetails: '세부 정보 숨기기',
   errorLearnMore: '자세히 알아보기',
 
+  // 랜딩 페이지 Android 앱 다운로드
+  landingApkTitle: '긴 회의라면 Android 앱을',
+  landingApkBody: '브라우저에서는 화면이 꺼지는 순간 녹음이 멈춥니다. Android 앱은 기기를 잠그고 주머니에 넣어도 계속 녹음합니다 — 긴 회의를 위해 만들었습니다.',
+  landingApkButton: 'Android용 다운로드',
+  landingApkMeta: (version: string, size: string) => `버전 ${version} · ${size} · Android 7.0 이상`,
+  landingApkNote: 'Play 스토어가 아닌 직접 설치 파일입니다 — 설치 시 이 출처의 앱 설치를 허용해 달라는 안내가 나옵니다. 웹 버전은 그대로 사용할 수 있으며 설치가 필요 없습니다.',
+
   // 화면 꺼짐 / 백그라운드 녹음
   keepScreenOnTitle: '녹음 중에는 화면을 켜 두세요',
   keepScreenOnIos: 'iPhone/iPad에서는 기기를 잠그면 Safari가 오디오 수집을 중단합니다. 회의 내내 화면을 켜 두고 Anpiso를 최상단에 두세요.',
