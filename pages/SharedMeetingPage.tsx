@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
-import { auth, googleProvider } from '../services/firebase';
+import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { auth } from '../services/firebase';
+import { signInWithGoogle, signOutGoogle } from '../services/googleAuth';
 import { shareService, SharePayload } from '../services/shareService';
 import MinutesDisplay from '../components/MinutesDisplay';
 import CopyButton from '../components/CopyButton';
@@ -79,8 +80,8 @@ const SharedMeetingPage: React.FC<Props> = ({ shareId }) => {
     return () => { alive = false; };
   }, [state, user, shareId, keyRaw]);
 
-  const signIn = () => signInWithPopup(auth, googleProvider).catch(() => {});
-  const switchAccount = async () => { await signOut(auth); signIn(); };
+  const signIn = () => signInWithGoogle().catch(() => {});
+  const switchAccount = async () => { await signOut(auth); await signOutGoogle(); signIn(); };
 
   if (state === 'auth') {
     return (

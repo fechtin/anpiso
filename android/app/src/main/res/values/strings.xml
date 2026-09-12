@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Anpiso</string>
+    <string name="title_activity_main">Anpiso</string>
+    <string name="package_name">com.fechtin.anpiso</string>
+    <string name="custom_url_scheme">com.fechtin.anpiso</string>
+
+    <string name="recording_channel_name">Đang ghi âm</string>
+    <string name="recording_channel_desc">Hiển thị trong lúc Anpiso ghi âm cuộc họp</string>
+    <string name="recording_notification_title">Anpiso đang ghi âm</string>
+    <string name="recording_notification_text">Cuộc họp vẫn được ghi khi tắt màn hình</string>
+</resources>

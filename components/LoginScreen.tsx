@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth, googleProvider } from '../services/firebase';
+import { signInWithGoogle, isUserCancelledSignIn } from '../services/googleAuth';
 import { User } from '../types';
 import { useLocale, LOCALE_OPTIONS } from '../i18n';
 
@@ -39,20 +38,9 @@ const LoginScreen: React.FC<Props> = ({ onLoginSuccess }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-
-      const user: User = {
-        uid: firebaseUser.uid,
-        name: firebaseUser.displayName || '',
-        email: firebaseUser.email || '',
-        picture: firebaseUser.photoURL || '',
-        accessToken: credential?.accessToken || undefined,
-      };
-      onLoginSuccess(user);
+      onLoginSuccess(await signInWithGoogle());
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
+      if (!isUserCancelledSignIn(err)) {
         setError(t.loginAuthError);
       }
     } finally {

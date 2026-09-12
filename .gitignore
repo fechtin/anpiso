@@ -37,3 +37,9 @@ tasks/
 
 # Chìa khoá E2EE người dùng tải về — tuyệt đối không commit
 anpiso-e2ee-key*.txt
+
+# Android: đường dẫn JDK/SDK riêng từng máy
+local.env.android
+
+# Cấu hình Firebase cho Android — giữ ngoài repo public giống .env của bản web
+android/app/google-services.json

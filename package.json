@@ -13,9 +13,16 @@
     "deploy": "vite build && GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy",
     "deploy:hosting": "vite build && GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy --only hosting",
     "deploy:rules": "GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy --only firestore:rules",
-    "deploy:indexes": "GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy --only firestore:indexes"
+    "deploy:indexes": "GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy --only firestore:indexes",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:build": "npm run android:sync && ./android/gradlew -p android assembleDebug",
+    "android:install": "npm run android:build && adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.5.1",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@google/genai": "^2.10.0",
     "@tailwindcss/vite": "^4.2.0",
     "buffer": "6.0.3",

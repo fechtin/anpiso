@@ -5,6 +5,19 @@ import { fixWebmDuration } from '../utils/audioUtils';
 import { formatDateTimeRange } from '../utils/textUtils';
 import { aiService } from '../services/aiService';
 import { logService } from '../services/logService';
+import { recordingStore } from '../services/recordingStore';
+import { backgroundRecording } from '../services/backgroundRecording';
+import { useWakeLock } from './useWakeLock';
+
+/**
+ * Nhịp nhả chunk của MediaRecorder. Phải có timeslice (thay vì start() trần) thì mới
+ * persist được audio liên tục xuống IndexedDB, và mới biết được lúc nào luồng đứng hình.
+ * KHÔNG ảnh hưởng tới việc gỡ băng: file vẫn được dựng nguyên vẹn một lần ở onstop.
+ */
+const CHUNK_MS = 15 * 1000;
+
+/** Quá 3 nhịp không thấy chunk nào → coi như âm thanh đã đứt (tab bị suspend, mic bị chiếm). */
+const STALL_THRESHOLD_MS = CHUNK_MS * 3;
 
 /** Detect best supported audio mimeType for MediaRecorder */
 const getSupportedMimeType = (): string => {
@@ -69,9 +82,19 @@ export const useMeetingRecorder = (
   const [hasPendingMinutes, setHasPendingMinutes] = useState(false);
   const [transcriptSource, setTranscriptSource] = useState<'hq' | 'live'>('hq');
 
+  // Âm thanh đang đứt giữa phiên (thường do màn tắt / tab bị suspend) — báo ngay thay vì
+  // để người dùng phát hiện lúc cuối buổi khi transcript trống
+  const [audioStalled, setAudioStalled] = useState(false);
+  const lastChunkAtRef = useRef<number>(0);
+  // Bản sao bền vững của audio: OS kill tab thì vẫn khôi phục được (xem recordingStore)
+  const persistIdRef = useRef<string | null>(null);
+  const persistSeqRef = useRef<number>(0);
+  // AudioContext trộn system+mic; bị suspend khi tab ẩn nên phải resume khi quay lại
+  const mixCtxRef = useRef<AudioContext | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  
+
   const startTimeRef = useRef<number>(0);
   const startClockTimeRef = useRef<Date | null>(null);
   
@@ -93,6 +116,45 @@ export const useMeetingRecorder = (
     }
     return () => { if (interval) clearInterval(interval); };
   }, [status]);
+
+  const isRecording = status === RecordingStatus.RECORDING;
+
+  // Trên Android native, foreground service đã lo việc ghi tiếp khi tắt màn → giữ màn
+  // sáng chỉ tổ hao pin. Wake Lock chỉ dành cho bản web, nơi không có lựa chọn nào khác.
+  const wakeLock = useWakeLock(isRecording && !backgroundRecording.isAvailable());
+
+  // Watchdog: MediaRecorder ngừng nhả chunk = âm thanh đã đứt. Chỉ trình duyệt mới gỡ
+  // được suspend (khi tab hiện lại), nên việc của ta là báo cho người dùng biết.
+  useEffect(() => {
+    if (!isRecording) { setAudioStalled(false); return; }
+    const id = window.setInterval(() => {
+      const last = lastChunkAtRef.current;
+      setAudioStalled(last > 0 && Date.now() - last > STALL_THRESHOLD_MS);
+    }, CHUNK_MS);
+    return () => clearInterval(id);
+  }, [isRecording]);
+
+  // Tab hiện lại sau khi bị ẩn → gỡ suspend cho luồng trộn để tiếng chạy tiếp
+  useEffect(() => {
+    if (!isRecording) return;
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const ctx = mixCtxRef.current;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+        logService.add('audio', 'info', 'visibility', 'Resumed mixing AudioContext after tab became visible');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [isRecording]);
+
+  /** Xoá bản sao khẩn cấp trong IndexedDB (fire-and-forget). */
+  const discardPersisted = () => {
+    const sessionId = persistIdRef.current;
+    persistIdRef.current = null;
+    if (sessionId) recordingStore.discardSession(sessionId).catch(() => {});
+  };
 
   /**
    * Gỡ băng TOÀN BỘ file audio trong MỘT request qua Files API.
@@ -128,6 +190,10 @@ export const useMeetingRecorder = (
     pendingMinutesRef.current = null;
     setHasPendingMinutes(false);
     setStatus(RecordingStatus.COMPLETED);
+
+    // Biên bản đã xong → bản sao khẩn cấp hết nhiệm vụ. Lỗi ở các bước trước thì
+    // CỐ Ý giữ lại để lần mở app sau còn khôi phục được.
+    discardPersisted();
   };
 
   /** "Thử lại" sau lỗi tóm tắt: không đụng transcript/audio, chỉ gọi lại AI. */
@@ -174,6 +240,7 @@ export const useMeetingRecorder = (
         }
 
         const ctx = new AudioContext();
+        mixCtxRef.current = ctx;
         const dest = ctx.createMediaStreamDestination();
         const originalTracks: MediaStreamTrack[] = [...sys.getTracks()];
 
@@ -192,6 +259,10 @@ export const useMeetingRecorder = (
       setMicMuted(false);
       setMicAvailable(micTracksRef.current.length > 0);
 
+      // Ngay sau khi có stream (tức RECORD_AUDIO đã được cấp) mới được bật foreground
+      // service — Android 14+ từ chối service kiểu microphone nếu gọi sớm hơn.
+      await backgroundRecording.start();
+
       mixedStreamRef.current = stream;
       
       const detectedMime = getSupportedMimeType();
@@ -201,17 +272,31 @@ export const useMeetingRecorder = (
       const recorder = new MediaRecorder(stream, recorderOptions);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
-      
-      recorder.ondataavailable = (e) => { 
+
+      const persistMime = detectedMime.split(';')[0] || 'audio/webm';
+      persistSeqRef.current = 0;
+      persistIdRef.current = await recordingStore.beginSession(persistMime);
+      lastChunkAtRef.current = Date.now();
+
+      recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
-          audioChunksRef.current.push(e.data); 
+          audioChunksRef.current.push(e.data);
+          lastChunkAtRef.current = Date.now();
+          // Bản sao bền vững — không await, ghi âm không được phụ thuộc vào storage
+          const sessionId = persistIdRef.current;
+          if (sessionId) {
+            recordingStore.appendChunk(sessionId, persistSeqRef.current++, e.data).catch(() => {});
+          }
         }
       };
-      
+
       recorder.onstop = async () => {
         // Stop media tracks AFTER recorder has flushed all data
         const tracks = (mixedStreamRef.current as any)?.originalTracks || mixedStreamRef.current?.getTracks();
         tracks?.forEach((t: MediaStreamTrack) => t.stop());
+
+        // Mic đã nhả → hạ foreground service, đừng để notification "đang ghi âm" treo lại
+        backgroundRecording.stop();
 
         // If cancelled, skip all processing and reset immediately
         if (cancelledRef.current) {
@@ -280,11 +365,15 @@ export const useMeetingRecorder = (
       startTimeRef.current = performance.now();
       startClockTimeRef.current = new Date();
       
-      recorder.start(); 
+      // timeslice bắt buộc: không có nó thì chunk chỉ xuất hiện lúc stop(), mất cả khả
+      // năng persist lẫn khả năng phát hiện luồng đứng hình. Việc dựng file ở onstop
+      // vẫn ghép liền mạch toàn bộ chunk nên không dính lỗi ghép byte WebM.
+      recorder.start(CHUNK_MS);
       setStatus(RecordingStatus.RECORDING);
       
       await connectAI(stream);
     } catch (err: any) {
+      backgroundRecording.stop();
       setErrorMessage(err.message);
       setStatus(RecordingStatus.ERROR);
     }
@@ -323,6 +412,14 @@ export const useMeetingRecorder = (
   }, []);
 
   const reset = () => {
+    discardPersisted();
+    if (mixCtxRef.current) {
+      mixCtxRef.current.close().catch(() => {});
+      mixCtxRef.current = null;
+    }
+    setAudioStalled(false);
+    lastChunkAtRef.current = 0;
+    persistSeqRef.current = 0;
     setStatus(RecordingStatus.IDLE);
     pendingMinutesRef.current = null;
     setHasPendingMinutes(false);
@@ -344,6 +441,7 @@ export const useMeetingRecorder = (
     status, minutes, setMinutes, errorMessage, isProcessingSegment, hqSegments,
     fullTranslatedTranscript, setFullTranslatedTranscript, isTranslatingFull, recordedBlob, elapsedTime,
     micMuted, micAvailable, toggleMic,
+    audioStalled, wakeLockSupported: wakeLock.supported, wakeLockHeld: wakeLock.held,
     hasPendingMinutes, retryMinutes, transcriptSource,
     startRecording, stopRecording, cancelRecording, reset
   };

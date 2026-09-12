@@ -302,6 +302,23 @@ const en: TranslationKeys = {
   errorHideDetails: 'Hide details',
   errorLearnMore: 'Learn more',
 
+  // Recording with the screen off / app in background
+  keepScreenOnTitle: 'Keep the screen on while recording',
+  keepScreenOnIos: 'On iPhone/iPad, locking the device makes Safari stop capturing audio. Keep the screen on and Anpiso in the foreground for the whole meeting.',
+  keepScreenOnGeneric: 'If the screen turns off, the browser may suspend the audio stream. Your recording is saved automatically, but keeping the screen on is safer.',
+  keepScreenOnUnsupported: 'This browser cannot keep the screen awake. Increase your screen timeout or leave the device on the Anpiso screen.',
+  audioStalledTitle: 'Audio has been interrupted',
+  audioStalledDesc: 'No new audio data is arriving. Reopen Anpiso and check your microphone — everything recorded so far is kept.',
+
+  // Orphaned recording recovery
+  recoveryTitle: 'Unfinished recording found',
+  recoveryDesc: 'Your last recording stopped unexpectedly but the audio is still here. You can generate minutes or download the file.',
+  recoveryRecover: 'Generate minutes',
+  recoveryDownload: 'Download',
+  recoveryDiscard: 'Discard',
+  recoveryEmpty: 'Could not read any audio from this recording.',
+  recoveryNeedLogin: 'Sign in to generate minutes from this recording.',
+
   // ShareButton
   share: 'Share',
   copy: 'Copy',

@@ -300,6 +300,23 @@ const vi = {
   errorHideDetails: 'Ẩn chi tiết',
   errorLearnMore: 'Tìm hiểu thêm',
 
+  // Ghi âm khi màn tắt / chạy nền
+  keepScreenOnTitle: 'Giữ màn hình sáng khi đang ghi',
+  keepScreenOnIos: 'Trên iPhone/iPad, khoá máy sẽ làm Safari dừng thu âm. Hãy để màn hình sáng và giữ Anpiso ở trên cùng suốt cuộc họp.',
+  keepScreenOnGeneric: 'Nếu màn hình tắt, trình duyệt có thể tạm dừng luồng âm thanh. Bản ghi vẫn được lưu tự động, nhưng nên giữ màn hình sáng.',
+  keepScreenOnUnsupported: 'Trình duyệt này không giữ được màn hình sáng. Hãy tự tăng thời gian chờ tắt màn hoặc giữ máy ở màn hình Anpiso.',
+  audioStalledTitle: 'Âm thanh đang bị gián đoạn',
+  audioStalledDesc: 'Không nhận được dữ liệu âm thanh mới. Hãy mở lại Anpiso và kiểm tra microphone — phần đã ghi vẫn được giữ.',
+
+  // Khôi phục bản ghi mồ côi
+  recoveryTitle: 'Có bản ghi chưa hoàn tất',
+  recoveryDesc: 'Lần ghi trước bị dừng đột ngột nhưng âm thanh vẫn còn. Bạn có thể tạo biên bản hoặc tải file về.',
+  recoveryRecover: 'Tạo biên bản',
+  recoveryDownload: 'Tải file',
+  recoveryDiscard: 'Xoá',
+  recoveryEmpty: 'Không đọc được nội dung âm thanh từ bản ghi này.',
+  recoveryNeedLogin: 'Cần đăng nhập để tạo biên bản từ bản ghi này.',
+
   // ShareButton
   share: 'Chia sẻ',
   copy: 'Sao chép',

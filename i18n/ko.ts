@@ -302,6 +302,23 @@ const ko: TranslationKeys = {
   errorHideDetails: '세부 정보 숨기기',
   errorLearnMore: '자세히 알아보기',
 
+  // 화면 꺼짐 / 백그라운드 녹음
+  keepScreenOnTitle: '녹음 중에는 화면을 켜 두세요',
+  keepScreenOnIos: 'iPhone/iPad에서는 기기를 잠그면 Safari가 오디오 수집을 중단합니다. 회의 내내 화면을 켜 두고 Anpiso를 최상단에 두세요.',
+  keepScreenOnGeneric: '화면이 꺼지면 브라우저가 오디오 스트림을 일시 중지할 수 있습니다. 녹음은 자동 저장되지만 화면을 켜 두는 편이 안전합니다.',
+  keepScreenOnUnsupported: '이 브라우저는 화면을 켜 둘 수 없습니다. 화면 꺼짐 시간을 늘리거나 Anpiso 화면을 유지하세요.',
+  audioStalledTitle: '오디오가 끊겼습니다',
+  audioStalledDesc: '새 오디오 데이터가 들어오지 않습니다. Anpiso를 다시 열고 마이크를 확인하세요 — 지금까지 녹음된 내용은 보관됩니다.',
+
+  // 중단된 녹음 복구
+  recoveryTitle: '완료되지 않은 녹음이 있습니다',
+  recoveryDesc: '지난 녹음이 예기치 않게 중단되었지만 오디오가 남아 있습니다. 회의록을 만들거나 파일을 내려받을 수 있습니다.',
+  recoveryRecover: '회의록 만들기',
+  recoveryDownload: '다운로드',
+  recoveryDiscard: '삭제',
+  recoveryEmpty: '이 녹음에서 오디오를 읽지 못했습니다.',
+  recoveryNeedLogin: '이 녹음으로 회의록을 만들려면 로그인하세요.',
+
   // ShareButton
   share: '공유',
   copy: '복사',

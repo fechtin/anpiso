@@ -24,7 +24,8 @@ export const db = getFirestore(app);
 // Cloud Functions for Drive token management
 const functions = getFunctions(app, 'asia-northeast3');
 export const exchangeDriveCodeFn = httpsCallable<
-  { authCode: string },
+  // source quyết định redirect_uri phía server: 'web' → 'postmessage', 'native' → rỗng
+  { authCode: string; source?: 'web' | 'native' },
   { accessToken: string; expiresIn: number }
 >(functions, 'exchangeDriveCode');
 

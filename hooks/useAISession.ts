@@ -1,5 +1,5 @@
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { encodeAudio } from '../utils/audioUtils';
 import { isMeaningfulText } from '../utils/textUtils';
@@ -225,6 +225,28 @@ export const useAISession = (rpmLimit: number = 6, targetLang: TargetLanguage = 
   }, [internalCleanup, connect]);
 
   triggerReconnectRef.current = triggerReconnect;
+
+  /**
+   * Tab bị ẩn (màn tắt, chuyển app) → trình duyệt suspend AudioContext và thường giết
+   * luôn WebSocket. Khi quay lại phải tự gỡ suspend + nối lại phiên, nếu không live
+   * transcript đứng im tới hết cuộc họp mà không báo lỗi gì.
+   */
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const ctx = inputCtxRef.current;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+        logService.add('audio', 'info', 'visibility', 'Resumed input AudioContext');
+      }
+      if (isDesiredActiveRef.current && !activeSessionRef.current && !isConnectingRef.current) {
+        logService.add('audio', 'info', 'visibility', 'Live session died while hidden — reconnecting');
+        triggerReconnectRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const cleanup = useCallback(() => {
     isDesiredActiveRef.current = false;

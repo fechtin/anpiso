@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, exchangeDriveCodeFn, refreshDriveTokenFn } from './services/firebase';
+import { signOutGoogle } from './services/googleAuth';
+import { requestDriveAuthorization } from './services/driveAuth';
 import { gmailService } from './services/gmailService';
 import { cryptoService } from './services/cryptoService';
 import { meetingService } from './services/meetingService';
@@ -31,6 +33,8 @@ import SendEmailDialog from './components/SendEmailDialog';
 import UserMenu from './components/UserMenu';
 import SettingsDialog from './components/SettingsDialog';
 import ErrorDisplay from './components/ErrorDisplay';
+import RecordingGuard from './components/RecordingGuard';
+import RecoveryBanner from './components/RecoveryBanner';
 import CopyButton from './components/CopyButton';
 import { useHostSharing } from './hooks/useHostSharing';
 import { useLocale } from './i18n';
@@ -145,6 +149,7 @@ const App: React.FC = () => {
     sessionStorage.removeItem('drive_access_token');
     sessionStorage.removeItem('drive_token_expiry');
     await signOut(auth);
+    await signOutGoogle(); // bản native còn giữ phiên Google Sign-In riêng của hệ điều hành
     setUser(null);
     setUserSettings({ driveEnabled: false });
     setShowLogoutConfirm(false);
@@ -196,6 +201,9 @@ const App: React.FC = () => {
     micMuted,
     micAvailable,
     toggleMic,
+    audioStalled,
+    wakeLockSupported,
+    wakeLockHeld,
     hasPendingMinutes,
     retryMinutes,
     transcriptSource,
@@ -410,6 +418,21 @@ const App: React.FC = () => {
     }
   };
 
+  // Khôi phục bản ghi mồ côi (tab bị OS kill lúc chạy nền): audio còn trong IndexedDB,
+  // chạy lại đúng đường gỡ băng HQ + tóm tắt rồi lưu như một cuộc họp bình thường.
+  const handleRecoverOrphan = async (blob: Blob, startedAt: Date) => {
+    if (!user) throw new Error(t.recoveryNeedLogin);
+    const transcript = await aiService.transcribeFullAudio(
+      blob, blob.type || 'audio/webm', userSettings.customNames, userSettings.transcriptionEngine);
+    if (!transcript.trim()) throw new Error(t.recoveryEmpty);
+    const timeRange = formatDateTimeRange(startedAt, startedAt);
+    const result = await aiService.generateMinutes(transcript, timeRange, targetLang, translationEnabled, userSettings.customNames);
+    await meetingService.saveMeeting(
+      user.uid, user.email, result, transcript, result.translatedTranscript || '', 'hq'
+    );
+    await loadMeetings(true);
+  };
+
   const handleDeleteMeeting = async (meetingId: string) => {
     // Xoá cuộc họp thì link chia sẻ của nó phải chết theo, đừng để lại link mồ côi
     const shareId = pastMeetings.find(m => m.id === meetingId)?.shareId;
@@ -617,31 +640,8 @@ const App: React.FC = () => {
 
     setIsDriveAuthorizing(true);
     try {
-      // Use Google Identity Services to get authorization code
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      const accessToken = await new Promise<string>((resolve, reject) => {
-        const client = google.accounts.oauth2.initCodeClient({
-          client_id: clientId,
-          scope: 'https://www.googleapis.com/auth/drive.file',
-          ux_mode: 'popup',
-          callback: async (response: google.accounts.oauth2.CodeResponse) => {
-            if (response.error) {
-              reject(new Error(response.error));
-              return;
-            }
-            try {
-              // Exchange code for tokens via Cloud Function
-              const result = await exchangeDriveCodeFn({ authCode: response.code });
-              sessionStorage.setItem('drive_token_expiry', String(Date.now() + result.data.expiresIn * 1000));
-              resolve(result.data.accessToken);
-            } catch (err) {
-              reject(err);
-            }
-          },
-        });
-        client.requestCode();
-      });
-
+      const { accessToken, expiresAt } = await requestDriveAuthorization();
+      sessionStorage.setItem('drive_token_expiry', String(expiresAt));
       sessionStorage.setItem('drive_access_token', accessToken);
       setUser(prev => prev ? { ...prev, driveAccessToken: accessToken } : null);
 
@@ -731,6 +731,7 @@ const App: React.FC = () => {
                 <i className="fas fa-arrow-right mt-0.5 opacity-50 group-hover:translate-x-0.5 transition-transform"></i>
               </button>
             )}
+            <RecoveryBanner onRecover={handleRecoverOrphan} />
             <RecorderControls
               status={status}
               onStart={handleStart}
@@ -952,6 +953,12 @@ const App: React.FC = () => {
 
         {status === RecordingStatus.RECORDING && (
           <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
+             <RecordingGuard
+               isRecording={true}
+               audioStalled={audioStalled}
+               wakeLockSupported={wakeLockSupported}
+               wakeLockHeld={wakeLockHeld}
+             />
              <LiveTranscript
                transcript={liveTranscript}
                inputDraft={inputDraft}
