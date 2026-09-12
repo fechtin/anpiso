@@ -16,7 +16,8 @@
     "deploy:indexes": "GOOGLE_APPLICATION_CREDENTIALS=firebase-auth.json firebase deploy --only firestore:indexes",
     "android:sync": "npm run build && npx cap sync android",
     "android:build": "npm run android:sync && ./android/gradlew -p android assembleDebug",
-    "android:install": "npm run android:build && adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+    "android:install": "npm run android:build && adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
+    "android:release": "npm run android:sync && ./android/gradlew -p android assembleRelease"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.5.1",

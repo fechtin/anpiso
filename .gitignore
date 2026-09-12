@@ -43,3 +43,8 @@ local.env.android
 
 # Cấu hình Firebase cho Android — giữ ngoài repo public giống .env của bản web
 android/app/google-services.json
+
+# Mật khẩu ký bản release — TUYỆT ĐỐI không commit
+android/keystore.properties
+*.jks
+*.keystore
